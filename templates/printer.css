@@ -1,0 +1,38 @@
+@page {
+	/**
+	LETTER	: 	21.59cm		27.94cm
+	A4		:	21cm		29.7cm
+	F4		:	21.59		33.02cm
+	*/
+	/*size: 21.59cm 33cm;*/
+	margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+}
+
+* { margin: 0; padding: 0 }
+
+body { 
+    font-size: 10pt;
+	font-family: Arial, sans-serif; 
+	color: #000; 
+}
+
+table th, table td {
+	vertical-align: top;
+}
+
+hr {
+	border: 1pt solid #000;
+}
+
+table.bordered {
+	border-collapse: collapse;
+}
+
+table.bordered td, table.bordered th {
+	border: 1px solid #000;
+	border-collapse: collapse;
+}
+table.inline {
+	float: left;
+	margin-right: 10px;
+}
