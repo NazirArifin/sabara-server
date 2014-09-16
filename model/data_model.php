@@ -136,7 +136,7 @@ class DataModel extends ModelBase {
 		
 		// cari di rbm, dapatkan idnya lalu masukkan ke rincian
 		$rbm = substr($koduk, 0, 7);
-		$urut = substr($koduk, 7, 3);
+		$urut = substr($koduk, 7, 5);
 		$urut = intval($urut);
 		
 		$run = $this->db->query("SELECT `ID_RBM` FROM `rbm` WHERE `NAMA_RBM` = '$rbm'", TRUE);
