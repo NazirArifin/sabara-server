@@ -231,3 +231,42 @@ $app->get('/map/gardu/:Idgardu', function($id) use ($app, $ctr) {
 		return halt401($app);
 	json_output($app, $r);
 });
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: map/tagihan/:rbm
+ */
+$app->options('/map/tagihan/:rbm', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/map/tagihan/:rbm', function($rbm) use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'tusbung');
+	$r = $ctr->TusbungModel->get_map($rbm);
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});
+
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: history
+ */
+$app->options('/img/:file', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/img/:file', function($file) use ($app, $ctr) { 
+	header('Pragma: public');
+	header('Cache-Control: max-age=0');
+	header('Expires: '. gmdate('D, d M Y H:i:s \G\M\T', time()));
+	
+	$f = 'upload/foto/' . $file;
+	if (isset($_GET['thumb']))
+		$f = preg_replace('/\.(jpg|jpeg)$/', '_thumb.$1', $f);
+	
+	if ( ! is_file($f)) $f = 'upload/foto/default.jpg';
+	$h = getimagesize($f);
+	$app->contentType($h['mime']);
+	echo readfile($f);
+});

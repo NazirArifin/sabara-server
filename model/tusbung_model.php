@@ -12,6 +12,148 @@ class TusbungModel extends ModelBase {
 	}
 	
 	/**
+	 * Tampilkan data tunggakan per rbm
+	 */
+	public function get_rbm_list() {
+		$r = array();
+		
+		$get = $this->prepare_get(array('cpage', 'unit', 'keyword'));
+		extract($get);
+		$unit = intval($unit);
+		$cpage = intval($cpage);
+		$keyword = $this->db->escape_str($keyword);
+		
+		// pagination
+		$dtpr = 15;
+		$start = ($cpage * $dtpr);
+		
+		// total data
+		$run = $this->db->query("SELECT COUNT(`ID_RBM`) AS `HASIL` FROM `rbm`", TRUE);
+		$total = $run->HASIL;
+		$numpage = ceil($total/$dtpr);
+		
+		$this->db->query("START TRANSACTION");
+		$run = $this->db->query("SELECT `nama_rbm`, `nama_petugas` FROM `bantu` WHERE `nama_rbm` LIKE '%" . $keyword . "%' GROUP BY `nama_rbm` ORDER BY `nama_rbm`, `nama_petugas` LIMIT $start, $dtpr");
+		for ($i = 0; $i < count($run); $i++) {
+			$rptag = $rpbk = $plg = 0;
+			
+			$namarbm = $run[$i]->nama_rbm;
+			// daftar idpel
+			$srun = $this->db->query("SELECT a.ID_PELANGGAN FROM rincian_rbm a, rbm b WHERE b.NAMA_RBM = '$namarbm' AND b.ID_RBM = a.ID_RBM");
+			
+			for ($j = 0; $j < count($srun); $j++) {
+				$idpel = $srun[$j]->ID_PELANGGAN;
+				$trun = $this->db->query("SELECT `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel'", TRUE);
+				
+				if ( ! empty($trun)) {
+					$rptag += $trun->RPTAG_TAGIHAN;
+					$rpbk += $trun->RPBK_TAGIHAN;
+					$plg += 1;
+				}
+			}
+			
+			$r[] = array(
+				'rbm' => $namarbm,
+				'petugas' => $run[$i]->nama_petugas,
+				'pelanggan' => $plg,
+				'rptag' => number_format($rptag, 0, ',', '.'),
+				'rpbk' => number_format($rpbk, 0, ',', '.')
+			);
+		}
+		$this->db->query("COMMIT");
+		
+		return array(
+			'numpage' => $numpage,
+			'data' => $r
+		);
+	}
+	
+	/**
+	 * Dapatkan detail tunggak per rbm
+	 */
+	public function get_detail_rbm($nama) {
+		$nama = $this->db->escape_str($nama);
+		$r = array();
+		
+		// cari rincian idpel
+		$run = $this->db->query("SELECT a.ID_PELANGGAN, c.NAMA_PELANGGAN, CONCAT(c.TARIF_PELANGGAN, '/', c.DAYA_PELANGGAN) AS TARIFDAYA, c.ALAMAT_PELANGGAN FROM rincian_rbm a, rbm b, pelanggan c WHERE a.ID_RBM = b.ID_RBM AND b.NAMA_RBM = '$nama' AND a.ID_PELANGGAN = c.ID_PELANGGAN");
+		for ($i = 0; $i < count($run); $i++) {
+			$idpel = $run[$i]->ID_PELANGGAN;
+			// cari di tagihan
+			$tag = $bk = $lmbr = 0;
+			$srun = $this->db->query("SELECT `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel'", TRUE);
+			if ( ! empty($srun)) {
+				$tag = $srun->RPTAG_TAGIHAN;
+				$bk = $srun->RPBK_TAGIHAN;
+				$lmbr = $srun->LEMBAR_TAGIHAN;
+			} else continue;
+			
+			$r[] = array(
+				'idpel' => $run[$i]->ID_PELANGGAN,
+				'nama' => $run[$i]->NAMA_PELANGGAN,
+				'alamat' => $run[$i]->ALAMAT_PELANGGAN,
+				'td' => $run[$i]->TARIFDAYA,
+				'lembar' => $lmbr,
+				'rptag' => number_format($tag, 0, ',', '.'),
+				'rpbk' => number_format($bk, 0, ',', '.'),
+			);
+		}
+		
+		return $r;
+	}
+	
+	/**
+	 * Mendapatkan daftar tusbung harian
+	 */
+	public function get_list() {
+		$r = array();
+		
+		$get = $this->prepare_get(array('tgl'));
+		extract($get);
+		$date = explode('/', $tgl);
+		if (count($date) != 3) return FALSE;
+		list($d, $m, $y) = $date;
+		$date = $y . '-' . $m . '-' . $d;
+		
+		$this->db->query("START TRANSACTION");
+		$run = $this->db->query("SELECT * FROM `cabutpasang` WHERE DATE(`TANGGAL_CABUTPASANG`) = '$date'");
+		for ($i = 0; $i < count($run); $i++) {
+			$sd = array();
+			
+			// jam dan foto
+			list($d, $t) = explode(' ', $run[$i]->TANGGAL_CABUTPASANG);
+			$sd['jam'] = $t;
+			$sd['foto1'] = ( ! is_file('upload/foto/' . $run[$i]->FOTO1_CABUTPASANG) ? '/img/default.jpg' : '/img/' . $run[$i]->FOTO1_CABUTPASANG);
+			$sd['foto2'] = ( ! is_file('upload/foto/' . $run[$i]->FOTO2_CABUTPASANG) ? '/img/default.jpg' : '/img/' . $run[$i]->FOTO2_CABUTPASANG);
+			
+			// data tagihan
+			$tagihan = $run[$i]->ID_TAGIHAN;
+			$srun = $this->db->query("SELECT a.ID_PELANGGAN, b.NAMA_PELANGGAN, b.ALAMAT_PELANGGAN, CONCAT(b.TARIF_PELANGGAN, '/', b.DAYA_PELANGGAN) AS TARIFDAYA, a.LEMBAR_TAGIHAN, a.RPTAG_TAGIHAN, a.RPBK_TAGIHAN FROM tagihan a, pelanggan b WHERE a.ID_PELANGGAN = b.ID_PELANGGAN AND a.ID_TAGIHAN = '$tagihan'", TRUE);
+			$sd['idpel'] = $srun->ID_PELANGGAN;
+			$sd['nama'] = trim($srun->NAMA_PELANGGAN);
+			$sd['alamat'] = trim($srun->ALAMAT_PELANGGAN);
+			$sd['td'] = $srun->TARIFDAYA;
+			$sd['lembar'] = $srun->LEMBAR_TAGIHAN;
+			$sd['rptag'] = number_format($srun->RPTAG_TAGIHAN, 0, ',', '.');
+			$sd['rpbk'] = number_format($srun->RPBK_TAGIHAN, 0, ',', '.');
+			
+			// petugas
+			$petugas = $run[$i]->ID_PETUGAS;
+			$srun = $this->db->query("SELECT `NAMA_PETUGAS` FROM `petugas` WHERE `ID_PETUGAS` = '$petugas'", TRUE);
+			$sd['petugas'] = $srun->NAMA_PETUGAS;
+			
+			// keterangan baca
+			$ketbaca = $run[$i]->ID_KETERANGAN_BACAMETER;
+			$srun = $this->db->query("SELECT `NAMA_KETERANGAN_BACAMETER` FROM `bacameter` WHERE `ID_KETERANGAN_BACAMETER` = '$ketbaca'", TRUE);
+			$sd['ketbaca'] = (empty($srun) ? '-' : $srun->NAMA_KETERANGAN_BACAMETER);
+			
+			$r[] = $sd;
+		}
+		$this->db->query("COMMIT");
+		return $r;
+	}
+	
+	/**
 	 * Import file rincian dan rekap tusbung
 	 */
 	public function import($iofiles, $type) {
@@ -131,5 +273,39 @@ class TusbungModel extends ModelBase {
 		}
 		
 		return array('error' => '', 'status' => 'success', 'file' => $filename, 'numdata' => $numdata);
+	}
+	
+	/**
+	 * Dapatkan map per gardu
+	 */
+	public function get_map($rbm) {
+		/*
+		$nama = $this->db->escape_str($nama);
+		$r = array();
+		
+		// cari rincian idpel
+		$run = $this->db->query("SELECT a.ID_PELANGGAN, c.NAMA_PELANGGAN, CONCAT(c.TARIF_PELANGGAN, '/', c.DAYA_PELANGGAN) AS TARIFDAYA, c.ALAMAT_PELANGGAN FROM rincian_rbm a, rbm b, pelanggan c WHERE a.ID_RBM = b.ID_RBM AND b.NAMA_RBM = '$nama' AND a.ID_PELANGGAN = c.ID_PELANGGAN");
+		
+		'lat' => floatval($koordinat->latitude), 
+						'longt' => floatval($koordinat->longitude),
+						'idpel' => $run[$i]->ID_PELANGGAN,
+						'urut' => $run[$i]->URUT_RINCIAN_RBM,
+						'nama' => $run[$i]->NAMA_PELANGGAN,
+						'tarif' => $run[$i]->TARIF_PELANGGAN,
+						'daya' => $run[$i]->DAYA_PELANGGAN,
+						'koduk' => $run[$i]->KODUK,
+						'stan' => $run[$i]->LWBP_BACAMETER,
+						'waktu' => $run[$i]->TANGGAL_BACAMETER,
+						'foto' => $run[$i]->FOTO_BACAMETER,
+						'bulan' => $blth
+		
+		*/
+		$rbm = $this->db->escape_str($rbm);
+		
+		
+		return array(
+			'data' => array(),
+			'center' => array()
+		);
 	}
 }

@@ -30,11 +30,12 @@ $app->get('/petugas/unit/:Idunit', function($id) use ($app, $ctr) {
 	json_output($app, $r);
 });
 
+
 // ----------------------------------------------------------------
 /**
  * Method: POST
  * Verb: petugas
- */
+ /
 $app->get('/petugas/unit/:Idunit', function($id) use ($app, $ctr) {
 	$ctr->load('model', 'main');
 	is_logged($app, $ctr);
@@ -43,6 +44,7 @@ $app->get('/petugas/unit/:Idunit', function($id) use ($app, $ctr) {
 	$r = $ctr->PetugasModel->get_petugas_by_unit($id);
 	json_output($app, $r);
 });
+*/
 
 // ----------------------------------------------------------------
 /**

@@ -136,18 +136,19 @@ class MeterModel extends ModelBase {
 			$dlpd = 10;
 		} else if ($kwh == 0) {
 			$dlpd = 8;
-		} else if ($kwhlalu == $kwh) {
-			$dlpd = 17;
+		} else if ($kwhlalu != 0) {
+			//if ($kwhrata2 > 0) {
+				//$kwh50 = ($kwhrata2 / 2);
+				$kwh50 = ($kwhlalu / 2);
+				//------- kwh turun < rata2 50%
+				if ($kwh < ($kwhlalu - $kwh50)) $dlpd = 4;
+				//------- kwh naik > rata2 50%
+				if ($kwh > ($kwhlalu + $kwh50)) $dlpd = 5;
+			//}
 		} else if ($jam < 60) {
 			$dlpd = 3;
-		} else if ($kwhlalu != 0) {
-			if ($kwhrata2 > 0) {
-				$kwh50 = ($kwhrata2 / 2);
-				// kwh turun < rata2 50%
-				if ($kwh < ($kwhrata2 - $kwh50)) $dlpd = 4;
-				// kwh naik > rata2 50%
-				if ($kwh > ($kwhrata2 + $kwh50)) $dlpd = 5;
-			}
+		} else if ($kwhlalu == $kwh) {
+			$dlpd = 17;
 		} 
 		
 		$pdlpd = 0;

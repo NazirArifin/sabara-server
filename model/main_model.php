@@ -295,40 +295,64 @@ class MainModel extends ModelBase {
 		// // ALTER TABLE  `gardu` ADD  `KOORDINAT_GARDU` VARCHAR( 120 ) NULL
 		// $center diisi dengan koordinat gardu
 		// baris ini contoh
+		$GARDU = $this->db->query("select NAMA_GARDU,mid(koordinat_gardu,14,11) as lat,mid(koordinat_gardu,40,11) as longt from gardu where id_gardu=$id", TRUE);
+
 			$center = array(
-				'lat' => '-7.17173523',
-				'longt' => '112.72286849',
-				'nama' => 'KEABA'
+				'lat' => floatval($GARDU->lat), 
+				'longt' => floatval($GARDU->longt),
+				'nama' => $GARDU->NAMA_GARDU
 			);
-			$data = array(
-				array(
-					'lat' => '-7.17098353',
-					'longt' => '112.72246564',
-					'idpel' => "517400055021",
-					'nama' => "SDN KAMAL II             ",
-					'tarif' => "S2",
-					'daya' => "2200",
-					'koduk' => "KEABACD00100",
-					'stan' => "42727.00",
-					'waktu' => "2014-08-25 08:26:08",
-					'foto' => "",
-					'bulan' => "082014"
-				),
-				array(
-					'lat' => '-7.17084007',
-					'longt' => '112.72227233',
-					'idpel' => "517400055021",
-					'nama' => "SDN KAMAL II             ",
-					'tarif' => "S2",
-					'daya' => "2200",
-					'koduk' => "KEABACD00100",
-					'stan' => "42727.00",
-					'waktu' => "2014-08-25 08:26:08",
-					'foto' => "",
-					'bulan' => "082014"
-				),
-			);
-		
+			
+		$runa = $this->db->query("SELECT `ID_BLTH`, `NAMA_BLTH` FROM `blth` WHERE `STATUS_BLTH`=1", TRUE);
+		$id_blth = $runa->ID_BLTH;
+		$blth = $runa->NAMA_BLTH;
+				
+		$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, mid(koordinat_pelanggan,14,11) as lat,mid(koordinat_pelanggan,40,11) as longt, a.koduk_pelanggan as KODUK,`LWBP_BACAMETER`, `TANGGAL_BACAMETER`,`FOTO_BACAMETER` FROM pelanggan a left join gardu b on b.ID_gardu = a.ID_gardu left join bacameter d on a.id_pelanggan=d.id_pelanggan WHERE b.id_GARDU = '$id' and d.id_blth='$id_blth'");
+		if (  count($run) == 0 ) {
+			$runx = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, mid(koordinat_pelanggan,14,11) as lat,mid(koordinat_pelanggan,40,11) as longt, a.koduk_pelanggan as KODUK, b.URUT_RINCIAN_RBM, '' as `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`,'' as `FOTO_BACAMETER` FROM pelanggan a left join gardu b on b.ID_gardu = a.ID_gardu WHERE b.ID_GARDU = '$id' ");
+			if ( ! empty($runx)) {
+				for ($i = 0; $i < count($runx); $i++) {
+					$k = $runx[$i]->lat;
+					if ( ! empty($k)) {
+						//$koordinat = json_decode($k);
+						$data[] = array(
+							'lat' => floatval($runx[$i]->lat), 
+							'longt' => floatval($runx[$i]->longt),
+							'idpel' => $run[$i]->ID_PELANGGAN,
+							'nama' => $run[$i]->NAMA_PELANGGAN,
+							'tarif' => $run[$i]->TARIF_PELANGGAN,
+							'daya' => $run[$i]->DAYA_PELANGGAN,
+							'koduk' => $run[$i]->KODUK,
+							'stan' => $run[$i]->LWBP_BACAMETER,
+							'waktu' => $run[$i]->TANGGAL_BACAMETER,
+							'foto' => $run[$i]->FOTO_BACAMETER,
+							'bulan' => $blth
+						);
+					}
+				}
+			}
+		} else {
+			for ($i = 0; $i < count($run); $i++) {
+				$k = $run[$i]->lat;
+				if ( ! empty($k)) {
+					//$koordinat = json_decode($k);
+					$data[] = array(
+						'lat' => floatval($run[$i]->lat), 
+						'longt' => floatval($run[$i]->longt),
+						'idpel' => $run[$i]->ID_PELANGGAN,
+						'nama' => $run[$i]->NAMA_PELANGGAN,
+						'tarif' => $run[$i]->TARIF_PELANGGAN,
+						'daya' => $run[$i]->DAYA_PELANGGAN,
+						'koduk' => $run[$i]->KODUK,
+						'stan' => $run[$i]->LWBP_BACAMETER,
+						'waktu' => $run[$i]->TANGGAL_BACAMETER,
+						'foto' => $run[$i]->FOTO_BACAMETER,
+						'bulan' => $blth
+					);
+				}
+			}
+		}
+					
 		return array(
 			'data' => $data, 'center' => $center
 		);
