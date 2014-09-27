@@ -43,7 +43,7 @@ class TusbungModel extends ModelBase {
 			
 			for ($j = 0; $j < count($srun); $j++) {
 				$idpel = $srun[$j]->ID_PELANGGAN;
-				$trun = $this->db->query("SELECT `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel'", TRUE);
+				$trun = $this->db->query("SELECT `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel' AND `STATUS_TAGIHAN` < 2", TRUE);
 				
 				if ( ! empty($trun)) {
 					$rptag += $trun->RPTAG_TAGIHAN;
@@ -81,11 +81,13 @@ class TusbungModel extends ModelBase {
 			$idpel = $run[$i]->ID_PELANGGAN;
 			// cari di tagihan
 			$tag = $bk = $lmbr = 0;
-			$srun = $this->db->query("SELECT `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel'", TRUE);
+			$srun = $this->db->query("SELECT `ID_TAGIHAN`, `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN`, `STATUS_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel' AND `STATUS_TAGIHAN` < 2", TRUE);
 			if ( ! empty($srun)) {
 				$tag = $srun->RPTAG_TAGIHAN;
 				$bk = $srun->RPBK_TAGIHAN;
 				$lmbr = $srun->LEMBAR_TAGIHAN;
+				$status = $srun->STATUS_TAGIHAN;
+				$id = $srun->ID_TAGIHAN;
 			} else continue;
 			
 			$r[] = array(
@@ -96,6 +98,8 @@ class TusbungModel extends ModelBase {
 				'lembar' => $lmbr,
 				'rptag' => number_format($tag, 0, ',', '.'),
 				'rpbk' => number_format($bk, 0, ',', '.'),
+				'status' => $status,
+				'id' => $id
 			);
 		}
 		
@@ -208,7 +212,7 @@ class TusbungModel extends ModelBase {
 				$run = $this->db->query("SELECT `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_BLTH` = '{$blth->ID_BLTH}' AND `ID_PELANGGAN` = '$idpel'", TRUE);
 				if (empty($run)) {
 					// insert
-					$ins = $this->db->query("INSERT INTO `tagihan` VALUES(0, '{$blth->ID_BLTH}', '$idpel', '$lembar', '$rptag', '$rpbk')");
+					$ins = $this->db->query("INSERT INTO `tagihan` VALUES(0, '{$blth->ID_BLTH}', '$idpel', '$lembar', '$rptag', '$rpbk', '0')");
 				} else {
 					// update
 					$upd = array();
@@ -276,36 +280,69 @@ class TusbungModel extends ModelBase {
 	}
 	
 	/**
+	 * Edit status tagihan
+	 */
+	public function edit_tagihan($id, $type) {
+		$type = ($type == 'cetak' ? 1 : 2);
+		$run = $this->db->query("UPDATE `tagihan` SET `STATUS_TAGIHAN` = '$type' WHERE `ID_TAGIHAN` = '$id'");
+		return array('status' => 1);
+	}
+	
+	/**
 	 * Dapatkan map per gardu
 	 */
 	public function get_map($rbm) {
-		/*
-		$nama = $this->db->escape_str($nama);
+		$rbm = $this->db->escape_str($rbm);
 		$r = array();
 		
-		// cari rincian idpel
-		$run = $this->db->query("SELECT a.ID_PELANGGAN, c.NAMA_PELANGGAN, CONCAT(c.TARIF_PELANGGAN, '/', c.DAYA_PELANGGAN) AS TARIFDAYA, c.ALAMAT_PELANGGAN FROM rincian_rbm a, rbm b, pelanggan c WHERE a.ID_RBM = b.ID_RBM AND b.NAMA_RBM = '$nama' AND a.ID_PELANGGAN = c.ID_PELANGGAN");
+		// cari bulan tahun
+		$blth = $this->db->query("SELECT * FROM `blth` WHERE `STATUS_BLTH` = '1'", TRUE);
 		
-		'lat' => floatval($koordinat->latitude), 
-						'longt' => floatval($koordinat->longitude),
-						'idpel' => $run[$i]->ID_PELANGGAN,
-						'urut' => $run[$i]->URUT_RINCIAN_RBM,
-						'nama' => $run[$i]->NAMA_PELANGGAN,
-						'tarif' => $run[$i]->TARIF_PELANGGAN,
-						'daya' => $run[$i]->DAYA_PELANGGAN,
-						'koduk' => $run[$i]->KODUK,
-						'stan' => $run[$i]->LWBP_BACAMETER,
-						'waktu' => $run[$i]->TANGGAL_BACAMETER,
-						'foto' => $run[$i]->FOTO_BACAMETER,
-						'bulan' => $blth
+		$run = $this->db->query("SELECT a.ID_PELANGGAN, c.NAMA_PELANGGAN, c.TARIF_PELANGGAN, c.DAYA_PELANGGAN, c.ALAMAT_PELANGGAN, c.KOORDINAT_PELANGGAN, c.KODUK_PELANGGAN FROM rincian_rbm a, rbm b, pelanggan c WHERE a.ID_RBM = b.ID_RBM AND b.NAMA_RBM = '$rbm' AND a.ID_PELANGGAN = c.ID_PELANGGAN");
+		for ($i = 0; $i < count($run); $i++) {
+			$d = array();
+			$idpel = $run[$i]->ID_PELANGGAN;
+			$srun = $this->db->query("SELECT `STATUS_TAGIHAN`, `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel' AND `ID_BLTH` = '{$blth->ID_BLTH}' AND `STATUS_TAGIHAN` < 2", TRUE);
+			if (empty($srun)) continue;
+			
+			$koordinat = json_decode($run[$i]->KOORDINAT_PELANGGAN);
+			$d['idpel'] = $idpel;
+			$d['nama'] = trim($run[$i]->NAMA_PELANGGAN);
+			$d['tarif'] = $run[$i]->TARIF_PELANGGAN;
+			$d['daya'] = $run[$i]->DAYA_PELANGGAN;
+			$d['koduk'] = $run[$i]->KODUK_PELANGGAN;
+			$d['urut'] = $srun->LEMBAR_TAGIHAN;
+			$d['lat'] = floatval($koordinat->latitude);
+			$d['longt'] = floatval($koordinat->longitude);
+			$d['lembar'] = $srun->LEMBAR_TAGIHAN;
+			$d['rptag'] = $srun->RPTAG_TAGIHAN;
+			$d['rpbk'] = $srun->RPBK_TAGIHAN;
+			$d['status'] = $srun->STATUS_TAGIHAN;
+			
+			$d['stan'] = '-';
+			$d['waktu'] = '-';
+			$d['foto'] = '-';
+			$d['bulan'] = '-';
+			
+			$r[] = $d;
+		}
 		
-		*/
-		$rbm = $this->db->escape_str($rbm);
+		if (empty($r)) {
+			return array(
+				'data' => array(),
+				'center' => array('lat' => 0, 'longt' => 0)
+			);
+		}
 		
+		// pilih center secara acak
+		$key = array_rand($r, 1);
+		$center = array(
+			'lat' => $r[$key]['lat'], 'longt' => $r[$key]['longt']
+		);
 		
 		return array(
-			'data' => array(),
-			'center' => array()
+			'data' => $r,
+			'center' => $center
 		);
 	}
 }

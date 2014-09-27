@@ -61,3 +61,19 @@ $app->get('/tusbung', function() use ($app, $ctr) {
 	$r = $ctr->TusbungModel->get_list();
 	json_output($app, $r);
 });
+
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: /tusbung/cetak
+ */
+$app->options('/tusbung/:Type/:Id', function() use($app) { $app->status(204); $app->stop(); });
+$app->get('/tusbung/:Type/:Id', function($type, $id) use ($app, $ctr) {
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'tusbung');
+	$r = $ctr->TusbungModel->edit_tagihan($id, $type);
+	json_output($app, $r);
+});
