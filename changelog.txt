@@ -1,4 +1,0 @@
-*change log
-
-1.1
-- upload menggunakan iframe, untuk file lebih besar 5mb

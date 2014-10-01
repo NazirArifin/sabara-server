@@ -32,34 +32,31 @@ class TusbungModel extends ModelBase {
 		$total = $run->HASIL;
 		$numpage = ceil($total/$dtpr);
 		
+		/**
+		 * OPTIMASI QUERY DIPERLUKAN !
+		 */
 		$this->db->query("START TRANSACTION");
-		$run = $this->db->query("SELECT `nama_rbm`, `nama_petugas` FROM `bantu` WHERE `nama_rbm` LIKE '%" . $keyword . "%' GROUP BY `nama_rbm` ORDER BY `nama_rbm`, `nama_petugas` LIMIT $start, $dtpr");
+		$run = $this->db->query("SELECT a.nama_rbm, a.nama_petugas, b.ID_RBM FROM bantu a, rbm b WHERE a.nama_rbm LIKE '%" . $keyword . "%' AND a.nama_rbm = b.NAMA_RBM GROUP BY(a.nama_rbm) ORDER BY a.nama_rbm, a.nama_petugas LIMIT $start, $dtpr");
 		for ($i = 0; $i < count($run); $i++) {
+			$rbm = $run[$i]->ID_RBM;
 			$rptag = $rpbk = $plg = 0;
 			
-			$namarbm = $run[$i]->nama_rbm;
-			// daftar idpel
-			$srun = $this->db->query("SELECT a.ID_PELANGGAN FROM rincian_rbm a, rbm b WHERE b.NAMA_RBM = '$namarbm' AND b.ID_RBM = a.ID_RBM");
-			
+			$srun = $this->db->query("SELECT a.RPTAG_TAGIHAN, a.RPBK_TAGIHAN FROM tagihan a, rincian_rbm b WHERE b.ID_RBM = '$rbm' AND a.ID_PELANGGAN = b.ID_PELANGGAN");
 			for ($j = 0; $j < count($srun); $j++) {
-				$idpel = $srun[$j]->ID_PELANGGAN;
-				$trun = $this->db->query("SELECT `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel' AND `STATUS_TAGIHAN` < 2", TRUE);
-				
-				if ( ! empty($trun)) {
-					$rptag += $trun->RPTAG_TAGIHAN;
-					$rpbk += $trun->RPBK_TAGIHAN;
-					$plg += 1;
-				}
+				$rptag += $srun[$i]->RPTAG_TAGIHAN;
+				$rpbk += $srun[$i]->RPBK_TAGIHAN;
+				$plg += 1;
 			}
 			
 			$r[] = array(
-				'rbm' => $namarbm,
+				'rbm' => $run[$i]->nama_rbm,
 				'petugas' => $run[$i]->nama_petugas,
 				'pelanggan' => $plg,
 				'rptag' => number_format($rptag, 0, ',', '.'),
 				'rpbk' => number_format($rpbk, 0, ',', '.')
 			);
 		}
+		
 		$this->db->query("COMMIT");
 		
 		return array(
@@ -75,33 +72,30 @@ class TusbungModel extends ModelBase {
 		$nama = $this->db->escape_str($nama);
 		$r = array();
 		
+		$this->db->query("START TRANSACTION");
+		$blth = $this->db->query("SELECT * FROM `blth` WHERE `STATUS_BLTH` = '1'", TRUE);
+		
+		// cari id rbm
+		$run = $this->db->query("SELECT `ID_RBM` FROM `rbm` WHERE `NAMA_RBM` = '$nama'", TRUE);
+		$rbm = $run->ID_RBM;
+		
 		// cari rincian idpel
-		$run = $this->db->query("SELECT a.ID_PELANGGAN, c.NAMA_PELANGGAN, CONCAT(c.TARIF_PELANGGAN, '/', c.DAYA_PELANGGAN) AS TARIFDAYA, c.ALAMAT_PELANGGAN FROM rincian_rbm a, rbm b, pelanggan c WHERE a.ID_RBM = b.ID_RBM AND b.NAMA_RBM = '$nama' AND a.ID_PELANGGAN = c.ID_PELANGGAN");
+		$run = $this->db->query("SELECT a.ID_PELANGGAN, c.NAMA_PELANGGAN, CONCAT(c.TARIF_PELANGGAN, '/', c.DAYA_PELANGGAN) AS TARIFDAYA, c.ALAMAT_PELANGGAN, d.ID_TAGIHAN, d.LEMBAR_TAGIHAN, d.RPTAG_TAGIHAN, d.RPBK_TAGIHAN, d.STATUS_TAGIHAN FROM rincian_rbm a, rbm b, pelanggan c, tagihan d WHERE a.ID_RBM = b.ID_RBM AND b.ID_RBM = '$rbm' AND a.ID_PELANGGAN = c.ID_PELANGGAN AND a.ID_PELANGGAN = d.ID_PELANGGAN AND d.STATUS_TAGIHAN < 2 AND d.ID_BLTH = '{$blth->ID_BLTH}'");
+		
 		for ($i = 0; $i < count($run); $i++) {
-			$idpel = $run[$i]->ID_PELANGGAN;
-			// cari di tagihan
-			$tag = $bk = $lmbr = 0;
-			$srun = $this->db->query("SELECT `ID_TAGIHAN`, `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN`, `STATUS_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel' AND `STATUS_TAGIHAN` < 2", TRUE);
-			if ( ! empty($srun)) {
-				$tag = $srun->RPTAG_TAGIHAN;
-				$bk = $srun->RPBK_TAGIHAN;
-				$lmbr = $srun->LEMBAR_TAGIHAN;
-				$status = $srun->STATUS_TAGIHAN;
-				$id = $srun->ID_TAGIHAN;
-			} else continue;
-			
 			$r[] = array(
 				'idpel' => $run[$i]->ID_PELANGGAN,
 				'nama' => $run[$i]->NAMA_PELANGGAN,
 				'alamat' => $run[$i]->ALAMAT_PELANGGAN,
 				'td' => $run[$i]->TARIFDAYA,
-				'lembar' => $lmbr,
-				'rptag' => number_format($tag, 0, ',', '.'),
-				'rpbk' => number_format($bk, 0, ',', '.'),
-				'status' => $status,
-				'id' => $id
+				'lembar' => $run[$i]->LEMBAR_TAGIHAN,
+				'rptag' => number_format($run[$i]->RPTAG_TAGIHAN, 0, ',', '.'),
+				'rpbk' => number_format($run[$i]->RPBK_TAGIHAN, 0, ',', '.'),
+				'status' => $run[$i]->STATUS_TAGIHAN,
+				'id' => $run[$i]->ID_TAGIHAN
 			);
 		}
+		$this->db->query("COMMIT");
 		
 		return $r;
 	}
@@ -212,7 +206,7 @@ class TusbungModel extends ModelBase {
 				$run = $this->db->query("SELECT `LEMBAR_TAGIHAN`, `RPTAG_TAGIHAN`, `RPBK_TAGIHAN` FROM `tagihan` WHERE `ID_BLTH` = '{$blth->ID_BLTH}' AND `ID_PELANGGAN` = '$idpel'", TRUE);
 				if (empty($run)) {
 					// insert
-					$ins = $this->db->query("INSERT INTO `tagihan` VALUES(0, '{$blth->ID_BLTH}', '$idpel', '$lembar', '$rptag', '$rpbk', '0')");
+					$ins = $this->db->query("INSERT INTO `tagihan` VALUES(0, '{$blth->ID_BLTH}', '$idpel', '$lembar', '$rptag', '$rpbk', '0', NULL, NULL)");
 				} else {
 					// update
 					$upd = array();
@@ -284,7 +278,8 @@ class TusbungModel extends ModelBase {
 	 */
 	public function edit_tagihan($id, $type) {
 		$type = ($type == 'cetak' ? 1 : 2);
-		$run = $this->db->query("UPDATE `tagihan` SET `STATUS_TAGIHAN` = '$type' WHERE `ID_TAGIHAN` = '$id'");
+		$f = "`" . ($type == 1 ? 'TGL_CETAK_TAGIHAN' : 'TGL_LUNAS_TAGIHAN') . "` = NOW()";
+		$run = $this->db->query("UPDATE `tagihan` SET `STATUS_TAGIHAN` = '$type', $f WHERE `ID_TAGIHAN` = '$id'");
 		return array('status' => 1);
 	}
 	
@@ -344,5 +339,213 @@ class TusbungModel extends ModelBase {
 			'data' => $r,
 			'center' => $center
 		);
+	}
+	
+	/**
+	 * Data pelanggan yang akan dicaabut pasang dikirim ke Android
+	 */
+	public function tagihan_by_petugas($id) {
+		$id = floatval($id);
+		$r = array();
+		
+		$this->db->query("START TRANSACTION");
+		// cari bulan tahun
+		$blth = $this->db->query("SELECT * FROM `blth` WHERE `STATUS_BLTH` = '1'", TRUE);
+		
+		$run = $this->db->query("SELECT a.ID_PELANGGAN, b.NAMA_PELANGGAN, b.KODUK_PELANGGAN, b.ALAMAT_PELANGGAN, b.KOORDINAT_PELANGGAN, d.LEMBAR_TAGIHAN, d.RPTAG_TAGIHAN, d.RPBK_TAGIHAN FROM rincian_rbm a, pelanggan b, rbm c, tagihan D WHERE a.ID_RBM = c.ID_RBM AND a.ID_PELANGGAN = b.ID_PELANGGAN AND c.ID_PETUGAS = '$id' AND a.ID_PELANGGAN = d.ID_PELANGGAN AND d.STATUS_TAGIHAN = '1' AND d.ID_BLTH = '{$blth->ID_BLTH}'");
+		for ($i = 0; $i < count($run); $i++) {
+			$k = json_decode($run[$i]->KOORDINAT_PELANGGAN);
+			$r[] = array(
+				'i' => $run[$i]->ID_PELANGGAN,
+				'n' => trim($run[$i]->NAMA_PELANGGAN),
+				'a' => trim($run[$i]->ALAMAT_PELANGGAN),
+				'k' => $run[$i]->KODUK_PELANGGAN,
+				'o' => array('lat' => $k->latitude, 'longt' => $k->longitude),
+				'l' => $run[$i]->LEMBAR_TAGIHAN,
+				't' => $run[$i]->RPTAG_TAGIHAN,
+				'b' => $run[$i]->RPBK_TAGIHAN
+			);
+		}
+		
+		$this->db->query("COMMIT");
+		return $r;
+	}
+	
+	/**
+	 * Upload data dari Android
+	 */
+	public function upload_tusbung($id, $iofiles) {
+		$post = $this->prepare_post(array('idpel', 'petugas', 'standputus', 'standsambung', 'lbkb', 'latitude', 'longitude'));
+		extract($post);
+		
+		
+	}
+	
+	/**
+	 * Dapatkan laporan kinerja tusbung
+	 */
+	public function get_report() {
+		$get = $this->prepare_get(array('unit', 'blth'));
+		extract($get);
+		$unit = intval($unit);
+		$blth = intval($blth);
+		$r = array();
+		
+		if (empty($unit) OR empty($blth)) return $r;
+		
+		$t = array();
+		$this->db->query("START TRANSACTION");
+		// dicetak
+		$run = $this->db->query("SELECT `ID_TAGIHAN`, DATE(`TGL_CETAK_TAGIHAN`) AS `CETAK` FROM `tagihan` WHERE `ID_BLTH` = '$blth' GROUP BY DATE(`TGL_CETAK_TAGIHAN`)");
+		// cacah
+		for ($i = 0; $i < count($run); $i++) {
+			$tgl = $run[$i]->CETAK;
+			if (is_null($tgl)) continue;
+			$srun = $this->db->query("SELECT SUM(`LEMBAR_TAGIHAN`) AS `LEMBAR`, SUM(`RPTAG_TAGIHAN`) AS `TAGIHAN` FROM `tagihan` WHERE DATE(`TGL_CETAK_TAGIHAN`) = '$tgl'", TRUE);
+			$t[$tgl]['cetak']['lembar'] = $srun->LEMBAR;
+			$t[$tgl]['cetak']['tagihan'] = $srun->TAGIHAN;
+		}
+		
+		// dilunasi
+		$run = $this->db->query("SELECT `ID_TAGIHAN`, DATE(`TGL_LUNAS_TAGIHAN`) AS `LUNAS` FROM `tagihan` WHERE `ID_BLTH` = '$blth' GROUP BY DATE(`TGL_LUNAS_TAGIHAN`)");
+		// cacah
+		for ($i = 0; $i < count($run); $i++) {
+			$tgl = $run[$i]->LUNAS;
+			if (is_null($tgl)) continue;
+			$srun = $this->db->query("SELECT SUM(`LEMBAR_TAGIHAN`) AS `LEMBAR`, SUM(`RPTAG_TAGIHAN`) AS `TAGIHAN` FROM `tagihan` WHERE DATE(`TGL_LUNAS_TAGIHAN`) = '$tgl'", TRUE);
+			$t[$tgl]['lunas']['lembar'] = $srun->LEMBAR;
+			$t[$tgl]['lunas']['tagihan'] = $srun->TAGIHAN;
+		}
+		
+		$this->db->query("COMMIT");
+		
+		// susun dalam tabel
+		$total = array();
+		$r = array();
+		
+		if (count($t) > 0) {
+			foreach ($t as $key => $val) {
+				$tr = array();
+				$tr['tgl'] = datedb_to_tanggal($key, 'd-M-Y');
+				
+				// dicetak
+				if ( ! isset($total['cetak'])) $total['cetak'] = array(0, 0);
+				if ( ! isset($t[$key]['cetak'])) $tr['cetak_lembar'] = $tr['cetak_tagihan'] = 0;
+				else {
+					$tr['cetak_lembar'] = number_format($val['cetak']['lembar'], 0, ',', '.');
+					$total['cetak'][0] += $val['cetak']['lembar'];
+					$tr['cetak_tagihan'] = number_format($val['cetak']['tagihan'], 0, ',', '.');
+					$total['cetak'][1] += $val['cetak']['tagihan'];
+				}
+				
+				// dilunasi
+				if ( ! isset($total['lunas'])) $total['lunas'] = array(0, 0);
+				if ( ! isset($t[$key]['lunas'])) $tr['lunas_lembar'] = $tr['lunas_tagihan'] = 0;
+				else {
+					$tr['lunas_lembar'] = number_format($val['lunas']['lembar'], 0, ',', '.');
+					$total['lunas'][0] += $val['lunas']['lembar'];
+					$tr['lunas_tagihan'] = number_format($val['lunas']['tagihan'], 0, ',', '.');
+					$total['lunas'][1] += $val['lunas']['tagihan'];
+				}
+				
+				// tidak lunas
+				if ( ! isset($total['tlunas'])) $total['tlunas'] = array(0, 0);
+				$tll = $this->tonumber($tr['cetak_lembar']) - $this->tonumber($tr['lunas_lembar']);
+				$tlt = $this->tonumber($tr['cetak_tagihan']) - $this->tonumber($tr['lunas_tagihan']);
+				$tr['tlunas_lembar'] = $tll;
+				$tr['tlunas_tagihan'] = number_format($tlt, 0, ',', '.');
+				$total['tlunas'][0] += $tll;
+				$total['tlunas'][1] += $tlt;
+				
+				// diputus
+				if ( ! isset($total['p'])) $total['p'] = array(0, 0);
+				$tr['p_lembar'] = $tr['p_tagihan'] = 0;
+				
+				// diputus lunas
+				if ( ! isset($total['pl'])) $total['pl'] = array(0, 0);
+				$tr['pl_lembar'] = $tr['pl_tagihan'] = 0;
+				
+				// sambung
+				if ( ! isset($total['sambung'])) $total['sambung'] = array(0, 0);
+				$tr['sambung_lembar'] = $tr['sambung_tagihan'] = 0;
+				
+				// rasio
+				if ( ! isset($total['rasio'])) $total['rasio'] = array(0, 0);
+				$rl = ($tr['lunas_lembar'] * 100) / $tr['cetak_lembar'];
+				$rt = ($tr['lunas_tagihan'] * 100) / $tr['cetak_tagihan'];
+				$tr['rasio_lembar'] = number_format($rl, 2, ',', '.') . '%';
+				$total['rasio'][0] += $rl;
+				$tr['rasio_tagihan'] = number_format($rt, 2, ',', '.') . '%';
+				$total['rasio'][1] += $rt;
+				
+				$r[] = $tr;
+			}
+			
+			// hitung total
+			$total['rasio'][0] = number_format($total['rasio'][0] / count($r), 2, ',', '.');
+			$total['rasio'][1] = number_format($total['rasio'][1] / count($r), 2, ',', '.');
+			// number_format untuk tagihan
+			$total['cetak'][1] = number_format($total['cetak'][1], 0, ',', '.');
+			$total['lunas'][1] = number_format($total['lunas'][1], 0, ',', '.');
+			$total['p'][1] = number_format($total['p'][1], 0, ',', '.');
+			$total['pl'][1] = number_format($total['pl'][1], 0, ',', '.');
+			$total['sambung'][1] = number_format($total['sambung'][1], 0, ',', '.');
+			$total['tlunas'][1] = number_format($total['tlunas'][1], 0, ',', '.');
+			$total['rasio'][0] = $total['rasio'][0] . '%';
+			$total['rasio'][1] = $total['rasio'][1] . '%';
+		}
+		
+		return array(
+			'data' => $r,
+			'total' => $total
+		);
+	}
+	private function tonumber($n) {
+		return floatval(preg_replace('/[^0-9]/', '', $n));
+	}
+	
+	/**
+	 * Grafik kinerja pemutusan
+	 */
+	public function grafik_kinerja($type, $id) {
+		$r = array(
+			'categories' => array(),
+			'series' => array(
+				0 => array(
+					'name' => 'Dicetak', 'data' => array()
+				),
+				1 => array(
+					'name' => 'Dilunasi', 'data' => array()
+				)
+			)
+		);
+		$namabulan = array('Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des');
+		$type = ($type == 'lembar' ? 'LEMBAR_TAGIHAN' : 'RPTAG_TAGIHAN');
+		$blth = intval($id);
+		// 7 bulan terakhir
+		$start = $blth - 7;
+		if ($start < 1) $start = 1;
+		
+		$this->db->query("START TRANSACTION");
+		for ($i = $start; $i <= $blth; $i++) {
+			$bulan = '';
+			$cetak = 0;
+			$lunas = 0;
+			$run = $this->db->query("SELECT a.{$type}, DATE(a.TGL_CETAK_TAGIHAN) AS CETAK, DATE(a.TGL_LUNAS_TAGIHAN) AS LUNAS, LEFT(b.NAMA_BLTH, 2) AS BULAN FROM tagihan a, blth b WHERE a.ID_BLTH = b.ID_BLTH AND b.ID_BLTH = '$i' AND (DATE(a.TGL_CETAK_TAGIHAN) != 'NULL' OR DATE(a.TGL_LUNAS_TAGIHAN) != 'NULL')");
+			if ( ! empty($run)) {
+				for ($j = 0; $j < count($run); $j++) {
+					if (empty($bulan)) $bulan = $run[$j]->BULAN;
+					if ( ! is_null($run[$j]->CETAK)) $cetak += $run[$j]->{$type};
+					if ( ! is_null($run[$j]->LUNAS)) $lunas += $run[$j]->{$type};
+				}
+			}
+			if (empty($bulan)) continue;
+			$r['categories'][] = $namabulan[intval($bulan) - 1];
+			$r['series'][0]['data'][] = $cetak;
+			$r['series'][1]['data'][] = $lunas;
+		}
+		$this->db->query("COMMIT");
+		
+		return $r;
 	}
 }
