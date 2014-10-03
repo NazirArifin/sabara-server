@@ -764,4 +764,140 @@ class ExcelModel extends ModelBase {
 
 		$objWriter->save('php://output');
 	}
+	
+	/**
+	 * Untuk laporan tusbung
+	 */
+	public function tusbung($r) {
+		$get = $this->prepare_get(array('unit', 'blth'));
+		extract($get);
+		$unit = intval($unit);
+		$blth = intval($blth);
+		
+		// cari unit
+		$run = $this->db->query("SELECT `NAMA_UNIT` FROM `unit` WHERE `ID_UNIT` = '$unit'", TRUE);
+		$nmunit = $run->NAMA_UNIT;
+		
+		// bulan tahun
+		$run = $this->db->query("SELECT `NAMA_BLTH` FROM `blth` WHERE `ID_BLTH` = '$blth'", TRUE);
+		$bln = substr($run->NAMA_BLTH, 0, 2);
+		$thn = substr($run->NAMA_BLTH, 2, 4);
+		$nmblth = datedb_to_tanggal($thn . '-' . $bln . '-' . '01', 'F Y');
+		
+		include_once('lib/phpexcel/PHPExcel.php');
+		$obj = new \PHPExcel();
+		$obj->getProperties()->setCreator('Sistem Analisa Baca Meter Madura')
+							 ->setLastModifiedBy('Sistem Analisa Baca Meter Madura')
+							 ->setTitle("Laporan Kinerja Tusbung")
+							 ->setSubject('Laporan')
+							 ->setDescription('Laporan Kinerja Tusbung')
+							 ->setKeywords('laporan', 'kinerja', 'tusbung')
+							 ->setCategory('Laporan');
+		$obj->setActiveSheetIndex(0);
+		$obj->getDefaultStyle()->getFont()->setName('Calibri');
+		$obj->getDefaultStyle()->getFont()->setSize(11);
+		
+		$obj->getActiveSheet()->setCellValue('A3', 'Laporan Kinerja Pemutusan');
+		$obj->getActiveSheet()->setCellValue('A4', "Zona ... Unit $nmunit");
+		$obj->getActiveSheet()->setCellValue('A5', "Bulan: $nmblth");
+		$obj->getActiveSheet()->getStyle('A1:A5')->getFont()->setBold(true);
+		$obj->getActiveSheet()->getStyle('A1:A5')->getFont()->setSize(12);
+		$obj->getActiveSheet()->mergeCells('A3:P3');
+		$obj->getActiveSheet()->mergeCells('A4:P4');
+		$obj->getActiveSheet()->mergeCells('A5:P5');
+		$obj->getActiveSheet()->getStyle('A3:A5')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+		
+		$obj->getActiveSheet()->setCellValue('A7', 'No');
+		$obj->getActiveSheet()->setCellValue('B7', 'Tgl Cetak');
+		$obj->getActiveSheet()->setCellValue('C7', 'Tul VI-01 Dicetak');
+		$obj->getActiveSheet()->setCellValue('E7', 'Tul VI-01 Dilunasi');
+		$obj->getActiveSheet()->setCellValue('G7', 'Tul VI-01 Diputus');
+		$obj->getActiveSheet()->setCellValue('I7', 'Tul VI-01 Diputus Lunas');
+		$obj->getActiveSheet()->setCellValue('K7', 'Sambung');
+		$obj->getActiveSheet()->setCellValue('M7', 'Tul VI-01 Tidak Lunas');
+		$obj->getActiveSheet()->setCellValue('O7', 'Rasio Pelunasan %');
+		$obj->getActiveSheet()->setCellValue('C8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('E8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('G8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('I8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('K8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('M8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('O8', 'Lembar');
+		$obj->getActiveSheet()->setCellValue('D8', 'Tagihan');
+		$obj->getActiveSheet()->setCellValue('F8', 'Tagihan');
+		$obj->getActiveSheet()->setCellValue('H8', 'Tagihan');
+		$obj->getActiveSheet()->setCellValue('J8', 'Tagihan');
+		$obj->getActiveSheet()->setCellValue('L8', 'Tagihan');
+		$obj->getActiveSheet()->setCellValue('N8', 'Tagihan');
+		$obj->getActiveSheet()->setCellValue('P8', 'Tagihan');
+		$obj->getActiveSheet()->mergeCells('A7:A8');
+		$obj->getActiveSheet()->mergeCells('B7:B8');
+		$obj->getActiveSheet()->mergeCells('C7:D7');
+		$obj->getActiveSheet()->mergeCells('E7:F7');
+		$obj->getActiveSheet()->mergeCells('G7:H7');
+		$obj->getActiveSheet()->mergeCells('I7:J7');
+		$obj->getActiveSheet()->mergeCells('K7:L7');
+		$obj->getActiveSheet()->mergeCells('M7:N7');
+		$obj->getActiveSheet()->mergeCells('O7:P7');
+		$obj->getActiveSheet()->getStyle('A7:P8')->getFont()->setBold(true);
+		$obj->getActiveSheet()->getStyle('A7:P8')->getAlignment()->setHorizontal(\PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+		
+		$obj->getActiveSheet()->getColumnDimension('A')->setWidth(4);
+		$obj->getActiveSheet()->getColumnDimension('B')->setWidth(11);
+		for ($i = 'C'; $i <= 'P'; $i++) $obj->getActiveSheet()->getColumnDimension($i)->setWidth(12);
+		
+		$data = $r['data'];
+		$total = $r['total'];
+		for ($i = 0, $crow = 9; $i < count($data); $i++, $crow++) {
+			$d = $data[$i];
+			$obj->getActiveSheet()->setCellValue('A' . $crow, ($i + 1));
+			$obj->getActiveSheet()->setCellValue('B' . $crow, $d['tgl']);
+			$obj->getActiveSheet()->setCellValue('B' . $crow, $d['tgl']);
+			$obj->getActiveSheet()->setCellValue('C' . $crow, $d['cetak_lembar']);
+			$obj->getActiveSheet()->setCellValueExplicit('D' . $crow, $d['cetak_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValue('E' . $crow, $d['lunas_lembar']);
+			$obj->getActiveSheet()->setCellValueExplicit('F' . $crow, $d['lunas_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValue('G' . $crow, $d['p_lembar']);
+			$obj->getActiveSheet()->setCellValueExplicit('H' . $crow, $d['p_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValue('I' . $crow, $d['pl_lembar']);
+			$obj->getActiveSheet()->setCellValueExplicit('J' . $crow, $d['pl_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValue('K' . $crow, $d['sambung_lembar']);
+			$obj->getActiveSheet()->setCellValueExplicit('L' . $crow, $d['sambung_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValue('M' . $crow, $d['tlunas_lembar']);
+			$obj->getActiveSheet()->setCellValueExplicit('N' . $crow, $d['tlunas_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValueExplicit('O' . $crow, $d['rasio_lembar'], \PHPExcel_Cell_DataType::TYPE_STRING);
+			$obj->getActiveSheet()->setCellValueExplicit('P' . $crow, $d['rasio_tagihan'], \PHPExcel_Cell_DataType::TYPE_STRING);
+		}
+		
+		$obj->getActiveSheet()->setCellValue('A' . $crow, 'Jumlah');
+		$obj->getActiveSheet()->mergeCells('A'. $crow .':B' . $crow);
+		$obj->getActiveSheet()->setCellValue('C' . $crow, $total['cetak'][0]);
+		$obj->getActiveSheet()->setCellValueExplicit('D' . $crow, $total['cetak'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValue('E' . $crow, $total['lunas'][0]);
+		$obj->getActiveSheet()->setCellValueExplicit('F' . $crow, $total['lunas'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValue('G' . $crow, $total['p'][0]);
+		$obj->getActiveSheet()->setCellValueExplicit('H' . $crow, $total['p'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValue('I' . $crow, $total['pl'][0]);
+		$obj->getActiveSheet()->setCellValueExplicit('J' . $crow, $total['pl'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValue('K' . $crow, $total['sambung'][0]);
+		$obj->getActiveSheet()->setCellValueExplicit('L' . $crow, $total['sambung'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValue('M' . $crow, $total['tlunas'][0]);
+		$obj->getActiveSheet()->setCellValueExplicit('N' . $crow, $total['tlunas'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValueExplicit('O' . $crow, $total['rasio'][0], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->setCellValueExplicit('P' . $crow, $total['rasio'][1], \PHPExcel_Cell_DataType::TYPE_STRING);
+		$obj->getActiveSheet()->getStyle('A' . $crow . ':P' . $crow)->getFont()->setBold(true);
+		$obj->getActiveSheet()->getStyle('A7:P' . $crow)->getBorders()->getAllBorders()->setBorderStyle(\PHPExcel_Style_Border::BORDER_THIN);
+		
+		$obj->getActiveSheet()->getPageSetup()->setOrientation(\PHPExcel_Worksheet_PageSetup::ORIENTATION_LANDSCAPE);
+		$obj->getActiveSheet()->getPageSetup()->setPaperSize(\PHPExcel_Worksheet_PageSetup::PAPERSIZE_FOLIO);
+		
+		$objWriter = \PHPExcel_IOFactory::createWriter($obj, 'Excel2007');
+		
+		// Redirect output to a client’s web browser (Excel2007)
+		header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+		header("Content-Disposition: attachment;filename=\"laporan-tusbung-{$nmunit}-{$bln}{$thn}.xlsx\"");
+		header('Cache-Control: max-age=0');
+
+		$objWriter->save('php://output');
+	}
 }

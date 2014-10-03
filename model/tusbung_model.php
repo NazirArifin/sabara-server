@@ -126,7 +126,9 @@ class TusbungModel extends ModelBase {
 			
 			// data tagihan
 			$tagihan = $run[$i]->ID_TAGIHAN;
-			$srun = $this->db->query("SELECT a.ID_PELANGGAN, b.NAMA_PELANGGAN, b.ALAMAT_PELANGGAN, CONCAT(b.TARIF_PELANGGAN, '/', b.DAYA_PELANGGAN) AS TARIFDAYA, a.LEMBAR_TAGIHAN, a.RPTAG_TAGIHAN, a.RPBK_TAGIHAN FROM tagihan a, pelanggan b WHERE a.ID_PELANGGAN = b.ID_PELANGGAN AND a.ID_TAGIHAN = '$tagihan'", TRUE);
+			$srun = $this->db->query("SELECT a.ID_TAGIHAN, a.ID_PELANGGAN, a.STATUS_TAGIHAN, b.NAMA_PELANGGAN, b.ALAMAT_PELANGGAN, CONCAT(b.TARIF_PELANGGAN, '/', b.DAYA_PELANGGAN) AS TARIFDAYA, a.LEMBAR_TAGIHAN, a.RPTAG_TAGIHAN, a.RPBK_TAGIHAN FROM tagihan a, pelanggan b WHERE a.ID_PELANGGAN = b.ID_PELANGGAN AND a.ID_TAGIHAN = '$tagihan'", TRUE);
+			$sd['id'] = $srun->ID_TAGIHAN;
+			$sd['status'] = $srun->STATUS_TAGIHAN;
 			$sd['idpel'] = $srun->ID_PELANGGAN;
 			$sd['nama'] = trim($srun->NAMA_PELANGGAN);
 			$sd['alamat'] = trim($srun->ALAMAT_PELANGGAN);
@@ -378,7 +380,40 @@ class TusbungModel extends ModelBase {
 		$post = $this->prepare_post(array('idpel', 'petugas', 'standputus', 'standsambung', 'lbkb', 'latitude', 'longitude'));
 		extract($post);
 		
+		// bulan tahun
+		$blth = $this->db->query("SELECT * FROM `blth` WHERE `STATUS_BLTH` = '1'", TRUE);
 		
+		$id = intval($id);
+		// cari di tagihan
+		$run = $this->db->query("SELECT `ID_TAGIHAN` FROM `tagihan` WHERE `ID_PELANGGAN` = '$idpel' AND `ID_BLTH` = '{$blth->ID_BLTH}' AND `STATUS_TAGIHAN` = '1'", TRUE);
+		if (empty($run)) return 'GAGAL';
+		
+		// cek di cabut pasang
+		$idtagih = $run->ID_TAGIHAN;
+		$cek = $this->db->query("SELECT `ID_CABUTPASANG`, `ID_KETERANGAN_BACAMETER`, `LWBP_PASANG_CABUTPASANG`, `LWBP_CABUT_CABUTPASANG`, `KOORDINAT_CABUTPASANG` FROM `cabutpasang` WHERE `ID_TAGIHAN` = '$idtagih' AND `ID_PETUGAS` = '$id'", TRUE);
+		if (empty($cek)) {
+			$files = array('foto1', 'foto2');
+			foreach ($files as $val) {
+				$config = array();
+				$config['upload_path']		= 'upload/foto/';
+				$config['allowed_types']	= 'jpg|jpeg|png';
+				$config['encrypt_name']		= TRUE;
+				$iofiles->upload_config($config);
+				$iofiles->upload($val);
+				$$val = $iofiles->upload_get_param('file_name');
+			}
+			
+			$koordinat = json_encode(array('latitude' => $latitude, 'longitude' => $longitude));
+			$ins = $this->db->query("INSERT INTO `cabutpasang` VALUES(0, '$idtagih', '$id', NOW(), '$lbkb', '$standsambung', '0', '0', '$standputus', '0', '0', '$foto1', '$foto2', '$koordinat')");
+		} else {
+			$upd = array();
+			if ($cek->ID_KETERANGAN_BACAMETER != $lbkb) $upd[] = "`ID_KETERANGAN_BACAMETER` = '$lbkb'";
+			if ($cek->LWBP_PASANG_CABUTPASANG != $standsambung) $upd[] = "`LWBP_PASANG_CABUTPASANG` = '$standsambung'";
+			if ($cek->LWBP_CABUT_CABUTPASANG != $standputus) $upd[] = "`LWBP_CABUT_CABUTPASANG` = '$standputus'";
+			if ($cek->KOORDINAT_CABUTPASANG != $koordinat) $upd[] = "`KOORDINAT_CABUTPASANG` = '$koordinat'";
+			if ( ! empty($upd)) $run = $this->db->query("UPDATE `cabutpasang` SET " . implode(', ', $upd) . " WHERE `ID_CABUTPASANG` = '{$cek->ID_CABUTPASANG}'");
+		}
+		return 'SUKSES';
 	}
 	
 	/**

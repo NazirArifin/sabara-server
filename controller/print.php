@@ -140,10 +140,19 @@ $app->options('/excel/pelanggan/:Idpel', function() use($app) { $app->status(200
 $app->get('/excel/pelanggan/:Idpel', function($id) use ($app, $ctr) {
 	$ctr->load('model', 'pelanggan');
 	$r = $ctr->PelangganModel->get_history($id);
-	
-	/*
-	$ctr->load('model', 'excel');
-	$ctr->ExcelModel->histori($id, $r);
-	*/
 });
 
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: excel/tusbung
+ */
+$app->options('/excel/tusbung', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/excel/tusbung', function() use ($app, $ctr) {
+	$ctr->load('model', 'tusbung');
+	$ctr->load('helper', 'date');
+	$r = $ctr->TusbungModel->get_report();
+	
+	$ctr->load('model', 'excel');
+	$ctr->ExcelModel->tusbung($r);
+});
