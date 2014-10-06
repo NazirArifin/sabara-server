@@ -128,9 +128,9 @@ class AnalisaModel extends ModelBase {
 		
 		// cari di mtrpakai
 		if (empty($nmrbm)) {
-			$run = $this->db->query("SELECT a.KWH_MTRPAKAI, a.KVARH_MTRPAKAI, a.JAM_NYALA, b.ID_PELANGGAN, b.NAMA_PELANGGAN, b.TARIF_PELANGGAN, b.DAYA_PELANGGAN, b.KODUK_PELANGGAN, c.KODE_DLPD, c.NAMA_DLPD FROM mtrpakai a join pelanggan b on a.ID_PELANGGAN = b.ID_PELANGGAN join dlpd c on a.ID_DLPD = c.ID_DLPD WHERE a.ID_BLTH = '$blth' AND SUBSTR(b.ID_PELANGGAN, 1, 5) = '$kodeunit' AND ($sdlpd)");
+			$run = $this->db->query("SELECT a.KWH_MTRPAKAI, a.KVARH_MTRPAKAI, a.JAM_NYALA, b.ID_PELANGGAN, b.NAMA_PELANGGAN, b.TARIF_PELANGGAN, b.DAYA_PELANGGAN, c.KODE_DLPD, c.NAMA_DLPD FROM mtrpakai a join pelanggan b on a.ID_PELANGGAN = b.ID_PELANGGAN join dlpd c on a.ID_DLPD = c.ID_DLPD WHERE a.ID_BLTH = '$blth' AND SUBSTR(b.ID_PELANGGAN, 1, 5) = '$kodeunit' AND ($sdlpd)");
 		} else {
-			$run = $this->db->query("SELECT a.KWH_MTRPAKAI, a.KVARH_MTRPAKAI, a.JAM_NYALA, b.ID_PELANGGAN, b.NAMA_PELANGGAN, b.TARIF_PELANGGAN, b.DAYA_PELANGGAN, b.KODUK_PELANGGAN, c.KODE_DLPD, c.NAMA_DLPD FROM mtrpakai a join pelanggan b on a.ID_PELANGGAN = b.ID_PELANGGAN join dlpd c on a.ID_DLPD = c.ID_DLPD WHERE SUBSTR(b.KODUK_PELANGGAN, 1, 7) = '$nmrbm' AND a.ID_BLTH = '$blth' AND SUBSTR(b.ID_PELANGGAN, 1, 5) = '$kodeunit' AND ($sdlpd)");
+			$run = $this->db->query("SELECT a.KWH_MTRPAKAI, a.KVARH_MTRPAKAI, a.JAM_NYALA, b.ID_PELANGGAN, b.NAMA_PELANGGAN, b.TARIF_PELANGGAN, b.DAYA_PELANGGAN, c.KODE_DLPD, c.NAMA_DLPD FROM mtrpakai a join pelanggan b on a.ID_PELANGGAN = b.ID_PELANGGAN join dlpd c on a.ID_DLPD = c.ID_DLPD WHERE SUBSTR(b.KODUK_PELANGGAN, 1, 7) = '$nmrbm' AND a.ID_BLTH = '$blth' AND SUBSTR(b.ID_PELANGGAN, 1, 5) = '$kodeunit' AND ($sdlpd)");
 		}
 		
 		for ($i = 0; $i < count($run); $i++) {
@@ -157,21 +157,25 @@ class AnalisaModel extends ModelBase {
  			}
 			
 			// cari di meter ini
-			$srun = $this->db->query("SELECT `ID_BACAMETER`, `LWBP_BACAMETER`, `WBP_BACAMETER`, `KVARH_BACAMETER` FROM `bacameter` WHERE `ID_PELANGGAN` = '$id_pelanggan' AND `ID_BLTH` = '$blth'", TRUE);
+			$srun = $this->db->query("SELECT `ID_BACAMETER`, `LWBP_BACAMETER`, `WBP_BACAMETER`, `KVARH_BACAMETER`,`KODE_KETERANGAN_BACAMETER` FROM `bacameter` a LEFT JOIN `keterangan_bacameter` b on a.id_keterangan_bacameter=b.id_keterangan_bacameter WHERE `ID_PELANGGAN` = '$id_pelanggan' AND `ID_BLTH` = '$blth'", TRUE);
 			if (empty($srun)) $lwbp = $wbp = $kvarh = $idbacameter = 0;
 			else {
 				$lwbp = $srun->LWBP_BACAMETER;
 				$wbp = $srun->WBP_BACAMETER;
 				$kvarh = $srun->KVARH_BACAMETER;
 				$idbacameter = $srun->ID_BACAMETER;
+				$lbkb = $srun->KODE_KETERANGAN_BACAMETER;
+				if($lbkb==null) $lbkb='';
 			}
 			// cari di koreksi
 			if ( ! empty($idbacameter)) {
-				$srun = $this->db->query("SELECT `LWBP_KOREKSI`, `WBP_KOREKSI`, `KVARH_KOREKSI` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbacameter'", TRUE);
+				$srun = $this->db->query("SELECT `LWBP_KOREKSI`, `WBP_KOREKSI`, `KVARH_KOREKSI`,`ID_KETERANGAN_BACAMETER` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbacameter'", TRUE);
 				if ( ! empty($srun)) {
 					$lwbp = $srun->LWBP_KOREKSI;
 					$wbp = $srun->WBP_KOREKSI;
 					$kvarh = $srun->KVARH_KOREKSI;
+					$lbkb = $srun->ID_KETERANGAN_BACAMETER;
+					if($lbkb==null) $lbkb='';
 				}
 			}
 			
@@ -190,9 +194,7 @@ class AnalisaModel extends ModelBase {
 				'lwbp0' => number_format(floatval($lwbp0), 2, ',', '.'),
 				'wbp0' => number_format(floatval($wbp0), 2, ',', '.'),
 				'kvarh0' => number_format(floatval($kvarh0), 2, ',', '.'),
-				// tambahan
-				'lbkb' => '',
-				'koduk' => $row->KODUK_PELANGGAN
+				'lbkb' => $lbkb
 			);
 		}
 		return $r;

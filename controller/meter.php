@@ -153,3 +153,37 @@ $app->get('/listrekaplbkb', function() use ($app, $ctr) {
 		return halt401($app);
 	json_output($app, $r);
 });
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: rekapbaca
+ */
+$app->options('/rekapbaca/:IdUnit', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/rekapbaca/:IdUnit', function($id) use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'meter');
+	$r = $ctr->MeterModel->get_rekap_baca($id);
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: rekapbaca
+ */
+$app->options('/rekapbaca/prepare/:IdUnit', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/rekapbaca/prepare/:IdUnit', function($id) use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'meter');
+	$r = $ctr->MeterModel->get_rekap_baca_prepare($id);
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});

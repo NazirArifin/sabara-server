@@ -506,8 +506,8 @@ class TusbungModel extends ModelBase {
 				
 				// rasio
 				if ( ! isset($total['rasio'])) $total['rasio'] = array(0, 0);
-				$rl = ($tr['lunas_lembar'] * 100) / $tr['cetak_lembar'];
-				$rt = ($tr['lunas_tagihan'] * 100) / $tr['cetak_tagihan'];
+				$rl = ($tr['cetak_lembar'] != 0 ? ($tr['lunas_lembar'] * 100) / $tr['cetak_lembar'] : 0);
+				$rt = ($tr['cetak_tagihan'] != 0 ? ($tr['lunas_tagihan'] * 100) / $tr['cetak_tagihan'] : 0);
 				$tr['rasio_lembar'] = number_format($rl, 2, ',', '.') . '%';
 				$total['rasio'][0] += $rl;
 				$tr['rasio_tagihan'] = number_format($rt, 2, ',', '.') . '%';

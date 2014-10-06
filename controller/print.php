@@ -145,6 +145,49 @@ $app->get('/excel/pelanggan/:Idpel', function($id) use ($app, $ctr) {
 // ----------------------------------------------------------------
 /**
  * Method: GET
+ * Verb: excel/rekap/catat
+ */
+$app->options('/excel/rekap/catat', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/excel/rekap/catat', function() use ($app, $ctr) {
+	$id = intval($_GET['unit']);
+	$ctr->load('model', 'meter');
+	$r = $ctr->MeterModel->get_rekap_baca_prepare($id);
+	
+	$ctr->load('model', 'excel');
+	$ctr->ExcelModel->rekap_catat($r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: excel/analisa/rbm
+ */
+$app->options('/excel/analisa/rbm', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/excel/analisa/rbm', function() use ($app, $ctr) {
+	$ctr->load('model', 'analisa');
+	$r = $ctr->AnalisaModel->get_analisa_rbm();
+	
+	$ctr->load('model', 'excel');
+	$ctr->ExcelModel->analisa_rbm($r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: excel/analisa/tarif
+ */
+$app->options('/excel/analisa/tarif', function() use($app) { $app->status(200); $app->stop(); });
+$app->get('/excel/analisa/tarif', function() use ($app, $ctr) {
+	$ctr->load('model', 'analisa');
+	$r = $ctr->AnalisaModel->get_analisa_tarif();
+	
+	$ctr->load('model', 'excel');
+	$ctr->ExcelModel->analisa_tarif($r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
  * Verb: excel/tusbung
  */
 $app->options('/excel/tusbung', function() use($app) { $app->status(200); $app->stop(); });

@@ -74,3 +74,34 @@ $app->get('/graph/lbkb', function() use ($app, $ctr) {
 	$r = $ctr->AnalisaModel->get_graph_lbkb();
 	json_output($app, $r);
 });
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: analisa/rbm
+ */
+$app->options('/analisa/rbm', function() use($app) { $app->status(204); $app->stop(); });
+$app->get('/analisa/rbm', function() use ($app, $ctr) {
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'analisa');
+	$r = $ctr->AnalisaModel->get_analisa_rbm();
+	json_output($app, $r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
+ * Verb: analisa/tarif
+ */
+$app->options('/analisa/tarif', function() use($app) { $app->status(204); $app->stop(); });
+$app->get('/analisa/tarif', function() use ($app, $ctr) {
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'analisa');
+	$r = $ctr->AnalisaModel->get_analisa_tarif();
+	json_output($app, $r);
+});
+
