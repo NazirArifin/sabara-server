@@ -438,7 +438,7 @@ class MeterModel extends ModelBase {
 				$r['kvarh0'] = str_replace('.', ',', $run->KVARH_BACAMETER);
 				
 				// cari di koreksi
-				$run = $this->db->query("SELECT `LWBP_KOREKSI`, `WBP_KOREKSI`, `KVARH_KOREKSI` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbacameter'", TRUE);
+				$run = $this->db->query("SELECT `LWBP_KOREKSI`, `WBP_KOREKSI`, `KVARH_KOREKSI` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbacameter' ORDER BY `TANGGAL_KOREKSI` DESC", TRUE);
 				if ( ! empty($run)) {
 					$r['lwbp0'] = str_replace('.', ',', $run->LWBP_KOREKSI);
 					$r['wbp0'] = str_replace('.', ',', $run->WBP_KOREKSI);
@@ -741,7 +741,7 @@ class MeterModel extends ModelBase {
 					$idbcmtr = $srun[$k]->ID_BACAMETER;
 					$ktbc = $srun[$k]->ID_KETERANGAN_BACAMETER;
 					// cari di koreksi
-					$krun = $this->db->query("SELECT `ID_KETERANGAN_BACAMETER` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbcmtr'", TRUE);
+					$krun = $this->db->query("SELECT `ID_KETERANGAN_BACAMETER` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbcmtr' ORDER BY `TANGGAL_KOREKSI` DESC", TRUE);
 					// jika tidak sama ubah
 					if ( ! empty($krun)) {
 						if ($ktbc != $krun->ID_KETERANGAN_BACAMETER)
