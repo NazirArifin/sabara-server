@@ -144,8 +144,9 @@ class TusbungModel extends ModelBase {
 			
 			// keterangan baca
 			$ketbaca = $run[$i]->ID_KETERANGAN_BACAMETER;
-			$srun = $this->db->query("SELECT `NAMA_KETERANGAN_BACAMETER` FROM `bacameter` WHERE `ID_KETERANGAN_BACAMETER` = '$ketbaca'", TRUE);
-			$sd['ketbaca'] = (empty($srun) ? '-' : $srun->NAMA_KETERANGAN_BACAMETER);
+			$srun = $this->db->query("SELECT `KODE_KETERANGAN_BACAMETER`, `NAMA_KETERANGAN_BACAMETER` FROM `bacameter` WHERE `ID_KETERANGAN_BACAMETER` = '$ketbaca'", TRUE);
+			$sd['ketbaca'] = (empty($srun) ? 'Normal' : $srun->NAMA_KETERANGAN_BACAMETER);
+			$sd['kdbaca'] = (empty($srun) ? '-' : $srun->KODE_KETERANGAN_BACAMETER);
 			
 			$r[] = $sd;
 		}
