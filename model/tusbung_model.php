@@ -106,7 +106,7 @@ class TusbungModel extends ModelBase {
 	public function get_list() {
 		$r = array();
 		
-		$get = $this->prepare_get(array('tgl'));
+		$get = $this->prepare_get(array('tgl', 'unit', 'rbm'));
 		extract($get);
 		$date = explode('/', $tgl);
 		if (count($date) != 3) return FALSE;
@@ -114,7 +114,15 @@ class TusbungModel extends ModelBase {
 		$date = $y . '-' . $m . '-' . $d;
 		
 		$this->db->query("START TRANSACTION");
-		$run = $this->db->query("SELECT * FROM `cabutpasang` WHERE DATE(`TANGGAL_CABUTPASANG`) = '$date'");
+		$idpetugas = 0;
+		if ( ! empty($rbm)) {
+			// cari id_petugas dengan id_rbm = $rbm
+			$run = $this->db->query("SELECT `ID_PETUGAS` FROM `rbm` WHERE `ID_RBM` = '$rbm'", TRUE);
+			$idpetugas = $run->ID_PETUGAS;
+		}
+		
+		$run = $this->db->query("SELECT * FROM `cabutpasang` WHERE DATE(`TANGGAL_CABUTPASANG`) = '$date'" .( ! empty($idpetugas) ? " AND `ID_PETUGAS` = '$idpetugas'" : ''));
+		
 		for ($i = 0; $i < count($run); $i++) {
 			$sd = array();
 			
