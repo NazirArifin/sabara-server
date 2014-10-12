@@ -103,3 +103,54 @@ $app->get('/listunread', function() use ($app, $ctr) {
 		return halt401($app);
 	json_output($app, $r);
 });
+
+$app->options('/aduan', function() use($app) { $app->status(200); $app->stop(); });
+// ----------------------------------------------------------------
+/**
+ * Method: POST
+ * Verb: aduan
+ */
+$app->get('/aduan', function() use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('helper', 'date');
+	$ctr->load('model', 'pelanggan');
+	$r = $ctr->PelangganModel->get_aduan();
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: POST
+ * Verb: aduan
+ */
+$app->post('/aduan', function() use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'pelanggan');
+	$r = $ctr->PelangganModel->add_aduan();
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: DELETE
+ * Verb: aduan
+ */
+$app->options('/aduan/:Id', function() use($app) { $app->status(200); $app->stop(); });
+$app->delete('/aduan/:Id', function($id) use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'pelanggan');
+	$r = $ctr->PelangganModel->delete_aduan($id);
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});

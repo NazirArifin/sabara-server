@@ -477,6 +477,28 @@ class DataModel extends ModelBase {
 	}
 	
 	/**
+	 * Update tanggal rbm
+	 */
+	public function update_rbm($id) {
+		$post = $this->prepare_post(array('id', 'tanggal', 'daya', 'hari', 'nama', 'nama_petugas', 'petugas', 'total'));
+		extract($post);
+		$id = floatval($id);
+		$tgl = intval($tanggal);
+		
+		$upd = $this->db->query("UPDATE `rbm` SET `TANGGAL_RBM` = '$tgl' WHERE `ID_RBM` = '$id'");
+		return array(
+			'id' => $id,
+			'daya' => $daya,
+			'hari' => $hari,
+			'nama' => $nama,
+			'nama_petugas' => $nama_petugas,
+			'petugas' => $petugas,
+			'tanggal' => $tgl,
+			'total' => $total
+		);
+	}
+	
+	/**
 	 * Tampilkan data gardu perhalaman
 	 */
 	public function get_gardu() {

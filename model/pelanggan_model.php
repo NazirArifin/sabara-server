@@ -368,4 +368,82 @@ class PelangganModel extends ModelBase {
 		}
 		return $r;
 	}
+	
+	/**
+	 * Mendapatkan data aduan
+	 */
+	public function get_aduan() {
+		$get = $this->prepare_get(array('cpage'));
+		extract($get);
+		$cpage = intval($cpage);
+		$r = array();
+		
+		// total halaman
+		$dtpg = 20;
+		$run = $this->db->query("SELECT COUNT(`ID_ADUAN`) AS `TOTAL` FROM `aduan` LIMIT 0, 400", TRUE);
+		$total = $run->TOTAL;
+		$numpage = ceil($total/$dtpg);
+		
+		$start = ($cpage * $dtpg);
+		$run = $this->db->query("SELECT a.ID_ADUAN, a.ID_PELANGGAN, b.ALAMAT_PELANGGAN, a.TELEPON_ADUAN, a.ISI_ADUAN, a.TL_ADUAN, a.TANGGAL_ADUAN, a.NAMA_ADUAN, b.ALAMAT_PELANGGAN FROM aduan a, pelanggan b WHERE a.ID_PELANGGAN = b.ID_PELANGGAN ORDER BY a.TANGGAL_ADUAN DESC LIMIT $start, $dtpg");
+		
+		for ($i = 0; $i < count($run); $i++) {
+			$r[] = array(
+				'id' => $run[$i]->ID_ADUAN,
+				'idpel' => $run[$i]->ID_PELANGGAN,
+				'nama' => trim($run[$i]->NAMA_ADUAN),
+				'alamat' => trim($run[$i]->ALAMAT_PELANGGAN),
+				'info' => trim($run[$i]->NAMA_ADUAN) . '<br>' . trim($run[$i]->ALAMAT_PELANGGAN),
+				'telepon' => $run[$i]->TELEPON_ADUAN,
+				'aduan' => $run[$i]->ISI_ADUAN,
+				'tl' => $run[$i]->TL_ADUAN,
+				'tanggal' => datedb_to_tanggal($run[$i]->TANGGAL_ADUAN, 'd/m/Y H:i')
+			);
+		}
+		
+		return array(
+			'data' => $r, 'numpage' => $numpage
+		);
+	}
+	
+	/** Tambah aduan pelanggan **/
+	public function add_aduan() {
+		$post = $this->prepare_post(array('id', 'idpel', 'nama', 'telepon', 'aduan', 'tl'));
+		extract($post);
+		
+		$id = intval($id);
+		$idpel = floatval($idpel);
+		$nama = $this->db->escape_str($nama);
+		$telepon = $this->db->escape_str($telepon);
+		$aduan = $this->db->escape_str($aduan);
+		$tl = $this->db->escape_str($tl);
+		
+		if (empty($id)) {
+			// insert
+			$ins = $this->db->query("INSERT INTO `aduan` VALUES(0, '$idpel', '$nama', '$telepon', '$aduan', '$tl', NOW())");
+			return array();
+		} else {
+			$data = $this->db->query("SELECT * FROM `aduan` WHERE `ID_ADUAN` = '$id'", TRUE);
+			if (empty($data)) return array();
+			$upd = array();
+			if ($data->ID_PELANGGAN != $idpel) $upd[] = "`ID_PELANGGAN` = '$idpel'";
+			if ($data->NAMA_ADUAN != $nama) $upd[] = "`NAMA_ADUAN` = '$nama'";
+			if ($data->TELEPON_ADUAN != $telepon) $upd[] = "`TELEPON_ADUAN` = '$telepon'";
+			if ($data->ISI_ADUAN != $aduan) $upd[] = "`ISI_ADUAN` = '$aduan'";
+			if ($data->TL_ADUAN != $tl) $upd[] = "`TL_ADUAN` = '$tl'";
+			
+			if ( ! empty($upd)) {
+				$run = $this->db->query("UPDATE `aduan` SET " . implode(', ', $upd) . "  WHERE `ID_ADUAN` = '$id'");
+			}
+		}
+	}
+	
+	/**
+	 * Hapus data aduan pelanggan
+	 */
+	public function delete_aduan($id) {
+		$id = intval($id);
+		$del = $this->db->query("DELETE FROM `aduan` WHERE `ID_ADUAN` = '$id'");
+		return array();
+	}
 }

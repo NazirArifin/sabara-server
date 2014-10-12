@@ -289,6 +289,23 @@ $app->get('/rbm', function() use ($app, $ctr) {
 // ----------------------------------------------------------------
 /**
  * Method: GET
+ * Verb: post
+ */
+$app->options('/rbm/:Idrbm', function() use($app) { $app->status(200); $app->stop(); });
+$app->post('/rbm/:Idrbm', function($id) use ($app, $ctr) { 
+	$ctr->load('model', 'main');
+	is_logged($app, $ctr);
+	
+	$ctr->load('model', 'data');
+	$r = $ctr->DataModel->update_rbm($id);
+	if ($r === FALSE) 
+		return halt401($app);
+	json_output($app, $r);
+});
+
+// ----------------------------------------------------------------
+/**
+ * Method: GET
  * Verb: stmt
  */
 $app->options('/stmt', function() use($app) { $app->status(200); $app->stop(); });
