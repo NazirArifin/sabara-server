@@ -323,7 +323,7 @@ select
 	0 as STLALU,
 	0 as STINI,
 	sum(b.kwh_mtrpakai) as Kwhini, 
-	0as kwh_lalu 
+	0 as kwh_lalu 
 from pelanggan a join mtrpakai b on a.id_pelanggan=b.id_pelanggan 
 where id_blth=({$blth}) and id_kodeproses={$kdproses} group by substr(a.koduk_pelanggan,1,7)
 ) z 
