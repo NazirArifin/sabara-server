@@ -67,28 +67,46 @@ class PelangganModel extends ModelBase {
 		$idblth = $lwbp = $wbp = $kvarh = 0;
 		if ( ! empty($run)) $idblth = $run->ID_BLTH;
 		
-		$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.KODUK_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, a.ID_GARDU FROM pelanggan a join  rincian_rbm c on a.ID_PELANGGAN = c.ID_PELANGGAN join rbm b on b.ID_RBM = c.ID_RBM WHERE b.ID_PETUGAS = '$id' AND b.TANGGAL_RBM = '" . date('j') . "' ORDER BY b.ID_RBM, a.ID_PELANGGAN");
-		for ($i = 0; $i < count($run); $i++) {
-			if ( ! empty($idblth)) {
-				$srun = $this->db->query("SELECT `LWBP_BACAMETER`, `WBP_BACAMETER`, `KVARH_BACAMETER` FROM `history` WHERE `ID_PELANGGAN` = '" . $run[$i]->ID_PELANGGAN . "' AND `ID_BLTH` = '$idblth'", TRUE);
-				if ( ! empty($srun)) {
-					$lwbp = number_format(floatval($srun->LWBP_BACAMETER), 2, '.', '');
-					$wbp = number_format(floatval($srun->WBP_BACAMETER), 2, '.', '');
-					$kvarh = number_format(floatval($srun->KVARH_BACAMETER), 2, '.', '');
-				}
-			}
-			/*if (empty($run[$i]->ID_GARDU)) $gardu = '';
-			else {
-				$srun = $this->db->query("SELECT `NAMA_GARDU` FROM `gardu` WHERE `ID_GARDU` = '" . $run[$i]->ID_GARDU . "'", TRUE);
-				$gardu = $srun->NAMA_GARDU;
-			}*/
-			
+		$runx = $this->db->query("select id_pelanggan,
+			group_concat(nama_pelanggan) as nama, 
+			group_concat(tarif_pelanggan) as tarif, sum(daya_pelanggan) as daya, 
+			group_concat(koduk_pelanggan) koduk, 
+			sum(lwbp0) as lwbplalu, sum(wbp0) as wbplalu, sum(kvarh0) as kvarhlalu
+			from
+			(
+			select -- dapatkan data pelanggan
+			a.id_pelanggan, 
+			nama_pelanggan, 
+			tarif_pelanggan, 
+			daya_pelanggan, 
+			koduk_pelanggan, 
+			0 as lwbp0, 
+			0 as wbp0, 
+			0 as kvarh0
+			from pelanggan a join rincian_rbm c on a.id_pelanggan=c.id_pelanggan join rbm b on b.ID_RBM = c.ID_RBM WHERE b.ID_PETUGAS = '$id' AND b.TANGGAL_RBM = '" . date('j') . "'
+			union all
+			select -- dapatkan stan lalu
+			a.id_pelanggan, 
+			null as nama_pelanggan, 
+			null as tarif_pelanggan, 
+			0 as daya_pelanggan, 
+			null as koduk_pelanggan,
+			lwbp_bacameter as lwbp0, 
+			wbp_bacameter as wbp0, 
+			kvarh_bacameter as kvarh0
+			from bacameter a join rincian_rbm c on a.id_pelanggan=c.id_pelanggan join rbm b on b.ID_RBM = c.ID_RBM WHERE b.ID_PETUGAS = '$id' AND b.TANGGAL_RBM = '" . date('j') . "' and id_blth='$idblth'
+			) z
+			group by id_pelanggan");
+		for ($i = 0; $i < count($runx); $i++) {
+			$lwbp = number_format(floatval($runx[$i]->lwbplalu), 2, '.', '');
+			$wbp = number_format(floatval($runx[$i]->wbplalu), 2, '.', '');
+			$kvarh = number_format(floatval($runx[$i]->kvarhlalu), 2, '.', '');	
 			$r[] = array(
-				'id' => $run[$i]->ID_PELANGGAN,
-				'nama' => $run[$i]->NAMA_PELANGGAN,
-				'koduk' => $run[$i]->KODUK_PELANGGAN,
-				'daya' => $run[$i]->DAYA_PELANGGAN,
-				'tarif' => $run[$i]->TARIF_PELANGGAN,
+				'id' => $runx[$i]->id_pelanggan,
+				'nama' => $runx[$i]->nama,
+				'koduk' => $runx[$i]->koduk,
+				'daya' => $runx[$i]->daya,
+				'tarif' => $runx[$i]->tarif,
 				'lwbp0' => $lwbp,
 				'wbp0' => $wbp,
 				'kvarh0' => $kvarh,

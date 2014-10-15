@@ -124,8 +124,11 @@ class ExcelModel extends ModelBase {
 		$namaunit = $run->NAMA_UNIT;
 		
 		// cari nama rbm
-		$run = $this->db->query("SELECT `NAMA_RBM` FROM `rbm` WHERE `ID_RBM` = '$rbm'", TRUE);
-		$namarbm = $run->NAMA_RBM;
+		$namarbm = 'SEMUA';
+		if(!empty($rbm)) {
+			$run = $this->db->query("SELECT `NAMA_RBM` FROM `rbm` WHERE `ID_RBM` = '$rbm'", TRUE);
+			$namarbm = $run->NAMA_RBM;
+		}
 		
 		// blth
 		$run = $this->db->query("SELECT `NAMA_BLTH` FROM `blth` WHERE `ID_BLTH` = '$blth'", TRUE);

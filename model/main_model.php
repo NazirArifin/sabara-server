@@ -309,7 +309,7 @@ class MainModel extends ModelBase {
 				
 		$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, mid(koordinat_pelanggan,14,11) as lat,mid(koordinat_pelanggan,40,11) as longt, a.koduk_pelanggan as KODUK,`LWBP_BACAMETER`, `TANGGAL_BACAMETER`,`FOTO_BACAMETER` FROM pelanggan a left join gardu b on b.ID_gardu = a.ID_gardu left join bacameter d on a.id_pelanggan=d.id_pelanggan WHERE b.id_GARDU = '$id' and d.id_blth='$id_blth'");
 		if (  count($run) == 0 ) {
-			$runx = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, mid(koordinat_pelanggan,14,11) as lat,mid(koordinat_pelanggan,40,11) as longt, a.koduk_pelanggan as KODUK, b.URUT_RINCIAN_RBM, '' as `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`,'' as `FOTO_BACAMETER` FROM pelanggan a left join gardu b on b.ID_gardu = a.ID_gardu WHERE b.ID_GARDU = '$id' ");
+			$runx = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, mid(koordinat_pelanggan,14,11) as lat,mid(koordinat_pelanggan,40,11) as longt, a.koduk_pelanggan as KODUK, '' as `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`,'' as `FOTO_BACAMETER` FROM pelanggan a left join gardu b on b.ID_gardu = a.ID_gardu WHERE b.ID_GARDU = '$id'");
 			if ( ! empty($runx)) {
 				for ($i = 0; $i < count($runx); $i++) {
 					$k = $runx[$i]->lat;
@@ -318,14 +318,14 @@ class MainModel extends ModelBase {
 						$data[] = array(
 							'lat' => floatval($runx[$i]->lat), 
 							'longt' => floatval($runx[$i]->longt),
-							'idpel' => $run[$i]->ID_PELANGGAN,
-							'nama' => $run[$i]->NAMA_PELANGGAN,
-							'tarif' => $run[$i]->TARIF_PELANGGAN,
-							'daya' => $run[$i]->DAYA_PELANGGAN,
-							'koduk' => $run[$i]->KODUK,
-							'stan' => $run[$i]->LWBP_BACAMETER,
-							'waktu' => $run[$i]->TANGGAL_BACAMETER,
-							'foto' => $run[$i]->FOTO_BACAMETER,
+							'idpel' => $runx[$i]->ID_PELANGGAN,
+							'nama' => $runx[$i]->NAMA_PELANGGAN,
+							'tarif' => $runx[$i]->TARIF_PELANGGAN,
+							'daya' => $runx[$i]->DAYA_PELANGGAN,
+							'koduk' => $runx[$i]->KODUK,
+							'stan' => $runx[$i]->LWBP_BACAMETER,
+							'waktu' => $runx[$i]->TANGGAL_BACAMETER,
+							'foto' => $runx[$i]->FOTO_BACAMETER,
 							'bulan' => $blth
 						);
 					}
