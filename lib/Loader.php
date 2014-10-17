@@ -20,6 +20,9 @@ class Loader {
 	 * Load controller dan router
 	 */
 	public function controller() {
+		// set timezone
+		date_default_timezone_set('Asia/Jakarta');
+		
 		// router dengan Slim
 		require 'lib/Slim/Slim.php';
 		\Slim\Slim::registerAutoloader();
