@@ -229,16 +229,41 @@ class MainModel extends ModelBase {
 		$id_blth = $runa->ID_BLTH;
 		$blth = $runa->NAMA_BLTH;
 				
-		$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, a.KOORDINAT_PELANGGAN, a.koduk_pelanggan as KODUK, b.URUT_RINCIAN_RBM, `LWBP_BACAMETER`, `TANGGAL_BACAMETER`,`FOTO_BACAMETER` FROM pelanggan a join rincian_rbm b on b.ID_PELANGGAN = a.ID_PELANGGAN join bacameter d on a.id_pelanggan=d.id_pelanggan WHERE b.ID_RBM = '$id' and d.id_blth='$id_blth' ORDER BY b.URUT_RINCIAN_RBM");
+		$run = $this->db->query("select * from (
+select 'GARDU' as ID_PELANGGAN, NAMA_GARDU as NAMA_PELANGGAN, '' as TARIF_PELANGGAN, '' as DAYA_PELANGGAN, 
+mid(koordinat_gardu,14,11) as lat,mid(koordinat_gardu,40,11) as longt, '' as KODUK, '' as URUT_RINCIAN_RBM,'' `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`, '' as `FOTO_BACAMETER` 
+from gardu a join pelanggan b on a.id_gardu=b.id_gardu join rbm c on left(b.KODUK_PELANGGAN,7)=c.NAMA_RBM where c.ID_RBM = '$id' and
+koordinat_gardu!=''
+group by a.NAMA_GARDU
+) a 
+union all
+select * from (
+SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, 
+mid(koordinat_pelanggan,14,11) as lat,mid(koordinat_pelanggan,40,11) as longt, a.koduk_pelanggan as KODUK, b.URUT_RINCIAN_RBM, `LWBP_BACAMETER`, `TANGGAL_BACAMETER`,`FOTO_BACAMETER` 
+FROM pelanggan a join rincian_rbm b on b.ID_PELANGGAN = a.ID_PELANGGAN join bacameter d on a.id_pelanggan=d.id_pelanggan 
+WHERE b.ID_RBM = '$id' and d.id_blth='$id_blth' and koordinat_pelanggan!='' ORDER BY b.URUT_RINCIAN_RBM
+) b");
+
 		if (  count($run) == 0 ) {
-			$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, a.KOORDINAT_PELANGGAN, a.koduk_pelanggan as KODUK, b.URUT_RINCIAN_RBM, '' as `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`,'' as `FOTO_BACAMETER` FROM pelanggan a join rincian_rbm b on b.ID_PELANGGAN = a.ID_PELANGGAN WHERE b.ID_RBM = '$id' ORDER BY b.URUT_RINCIAN_RBM");
+			$run = $this->db->query("select * from (
+select 'GARDU' as ID_PELANGGAN, NAMA_GARDU as NAMA_PELANGGAN, '' as TARIF_PELANGGAN, '' as DAYA_PELANGGAN, 
+mid(koordinat_gardu,14,11) as lat,mid(koordinat_gardu,40,11) as longt, '' as KODUK, '' as URUT_RINCIAN_RBM,'' `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`, '' as `FOTO_BACAMETER` 
+from gardu a join pelanggan b on a.id_gardu=b.id_gardu join rbm c on left(b.KODUK_PELANGGAN,7)=c.NAMA_RBM where c.ID_RBM = '$id' and
+koordinat_gardu!=''
+group by a.NAMA_GARDU
+) a 
+union all
+select * from (SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, a.KOORDINAT_PELANGGAN, 
+a.koduk_pelanggan as KODUK, b.URUT_RINCIAN_RBM, '' as `LWBP_BACAMETER`, '' as `TANGGAL_BACAMETER`,'' as `FOTO_BACAMETER` 
+FROM pelanggan a join rincian_rbm b on b.ID_PELANGGAN = a.ID_PELANGGAN join bacameter d on a.id_pelanggan=d.id_pelanggan 
+WHERE b.ID_RBM = '$id' and d.id_blth='$id_blth' and koordinat_pelanggan!='' ORDER BY b.URUT_RINCIAN_RBM) b");
 			for ($i = 0; $i < count($run); $i++) {
-				$k = $run[$i]->KOORDINAT_PELANGGAN;
+				$k = $run[$i]->lat;
 				if ( ! empty($k)) {
 					$koordinat = json_decode($k);
 					$data[] = array(
-						'lat' => floatval($koordinat->latitude), 
-						'longt' => floatval($koordinat->longitude),
+						'lat' => floatval($run[$i]->lat), 
+						'longt' => floatval($run[$i]->longt),
 						'idpel' => $run[$i]->ID_PELANGGAN,
 						'urut' => $run[$i]->URUT_RINCIAN_RBM,
 						'nama' => $run[$i]->NAMA_PELANGGAN,
@@ -254,12 +279,12 @@ class MainModel extends ModelBase {
 			}
 		} else {
 			for ($i = 0; $i < count($run); $i++) {
-				$k = $run[$i]->KOORDINAT_PELANGGAN;
+				$k = $run[$i]->lat;
 				if ( ! empty($k)) {
 					$koordinat = json_decode($k);
 					$data[] = array(
-						'lat' => floatval($koordinat->latitude), 
-						'longt' => floatval($koordinat->longitude),
+						'lat' => floatval($run[$i]->lat), 
+						'longt' => floatval($run[$i]->longt),
 						'idpel' => $run[$i]->ID_PELANGGAN,
 						'urut' => $run[$i]->URUT_RINCIAN_RBM,
 						'nama' => $run[$i]->NAMA_PELANGGAN,
