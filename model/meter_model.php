@@ -566,13 +566,13 @@ class MeterModel extends ModelBase {
 	/**
 	 * Mendapatkan daftar lbkb
 	 */
-	public function get_lbkb() {
+		public function get_lbkb() {
 		$get = $this->prepare_get(array('unit', 'rbm', 'blth', 'lbkb'));
 		extract($get);
 		$unit = intval($unit);
 		$rbm = floatval($rbm);
 		$blth = intval($blth);
-		if (empty($lbkb)) $lbkb = array();
+		
 		
 		// baca bulantahun
 		$run = $this->db->query("SELECT `NAMA_BLTH` FROM `blth` WHERE `ID_BLTH` = '$blth'", TRUE);
@@ -587,109 +587,186 @@ class MeterModel extends ModelBase {
 		if (empty($run)) $blth0 = 0;
 		else $blth0 = $run->ID_BLTH;
 		
+		$nama_rbm = '';
+		
 		// rbm
 		if ($rbm != '') {
 			$run = $this->db->query("SELECT `NAMA_RBM` FROM `rbm` WHERE `ID_RBM` = '$rbm'", TRUE);
 			$nama_rbm = $run->NAMA_RBM;
 		}
 		
-		// cari keterangan bacameter
-		$run = $this->db->query("SELECT * FROM `keterangan_bacameter` ORDER BY `ID_KETERANGAN_BACAMETER`");
-		for ($i = 0; $i < count($run); $i++) {
-			$datalbkb[] = array(
-				'id' => $run[$i]->ID_KETERANGAN_BACAMETER,
-				'kode' => $run[$i]->KODE_KETERANGAN_BACAMETER,
-				'nama' => $run[$i]->NAMA_KETERANGAN_BACAMETER
-			);
-		}
+		$sql = "select * from (select id_pelanggan,
+				nama, tarif, daya, alamat, kdproses,
+				if(LBKBKoreksi is null,`L B K B`,LBKBKoreksi) as LBKB,
+				if(KD_LBKBKoreksi is null,`KD_L B K B`,KD_LBKBKoreksi) as KD_LBKB,
+				PLBKB as plbkb_bacameter,koduk_plg,rbm,
+				lwbplalu,wbplalu, kvarhlalu,
+				if(lwbpk>0,lwbpk,lwbpini) as LWBP,
+				if(wbpk>0,wbpk,wbpini) as WBP,
+				if(kvarhk>0,kvarhk,kvarhini) as KVARH,
+				TGL,nama_gardu,
+				if(IDLBKBKOR>0,IDLBKBKOR,IDLBKB) as ID_KET
+				from
+				(
+				select id_pelanggan,
+				group_concat(nama_pelanggan) as nama, 
+				group_concat(tarif_pelanggan) as tarif, sum(daya_pelanggan) as daya, 
+				group_concat(alamat_pelanggan) as alamat, sum(id_kodeproses) as kdproses,
+				group_concat(nama_keterangan_bacameter) as `L B K B`, group_concat(LBKBKor) as LBKBKoreksi, 
+				group_concat(kode_keterangan_bacameter) as `KD_L B K B`, group_concat(KD_LBKBKor) as KD_LBKBKoreksi,
+				sum(plbkb_bacameter) as PLBKB,
+				group_concat(koduk) as `koduk_plg`, 
+				group_concat(date_format(tanggal, '%d %m %Y')) as TGL,
+				left(group_concat(koduk),7) as RBM,
+				sum(lwbp0) as lwbplalu, sum(wbp0) as wbplalu, sum(kvarh0) as kvarhlalu, 
+				sum(lwbp) as lwbpini, sum(wbp) as wbpini, sum(kvarh) as kvarhini, 
+				sum(lwbpkor) as lwbpk,sum(wbpkor) as wbpk, sum(kvarhkor) as kvarhk,
+				group_concat(gardu) as nama_gardu,
+				sum(ID_LBKBKOR) as IDLBKBKOR,sum(ID_LBKB) as IDLBKB
+				from
+				(
+				select 
+				id_pelanggan, 
+				nama_pelanggan, 
+				tarif_pelanggan, 
+				daya_pelanggan, 
+				alamat_pelanggan,
+				id_kodeproses,
+				null as nama_keterangan_bacameter, null as LBKBKor,
+				null as kode_keterangan_bacameter, null as KD_LBKBKor,
+				0 as plbkb_bacameter,
+				koduk_pelanggan as koduk,
+				null AS TANGGAL,
+				0 as lwbp0, 
+				0 as wbp0, 
+				0 as kvarh0, 
+				0 as lwbp,
+				0 as wbp, 
+				0 as kvarh, 
+				0 as lwbpkor, 
+				0 as wbpkor, 
+				0 as kvarhkor, 
+				nama_gardu as gardu, 0 as ID_LBKBKOR, 0 as ID_LBKB
+				from pelanggan a left join rbm b on left(a.koduk_pelanggan,7)=b.nama_rbm left join gardu c on a.id_gardu=c.id_gardu where status_pelanggan=1
+				union all
+				select 
+				id_pelanggan, 
+				null as nama_pelanggan, 
+				null as tarif_pelanggan, 
+				0 as daya_pelanggan, 
+				null as alamat_pelanggan,
+				0 as id_kodeproses,
+				null as nama_keterangan_bacameter, null as LBKBKor,
+				null as kode_keterangan_bacameter, null as KD_LBKBKor,
+				0 as plbkb_bacameter,
+				null as koduk,
+				null as TANGGAL,
+				lwbp_bacameter as lwbp0, 
+				wbp_bacameter as wbp0, 
+				kvarh_bacameter as kvarh0, 
+				0 as lwbp,
+				0 as wbp, 
+				0 as kvarh, 
+				0 as lwbpkor, 
+				0 as wbpkor, 
+				0 as kvarhkor, 
+				null as gardu, 0 as ID_LBKBKOR, 0 as ID_LBKB
+				from history where id_blth=$blth0 group by id_pelanggan
+				union all 
+				select 	
+				a.id_pelanggan, 
+				null as nama_pelanggan, 
+				null as tarif_pelanggan, 
+				0 as daya_pelanggan, 
+				null as alamat_pelanggan,
+				0 as id_kodeproses,
+				c.nama_keterangan_bacameter, null as LBKBKor,
+				c.kode_keterangan_bacameter, null as KD_LBKBKor, 
+				a.plbkb_bacameter,
+				null as koduk,
+				DATE(a.TANGGAL_BACAMETER) AS TANGGAL,
+				0 as lwbp0, 
+				0 as wbp0, 
+				0 as kvarh0, 
+				max(lwbp_bacameter) as lwbp,
+				wbp_bacameter as wbp, 
+				kvarh_bacameter as kvarh, 
+				0 as lwbpkor, 
+				0 as wbpkor, 
+				0 as kvarhkor, 
+				null as gardu, 0 as ID_LBKBKOR, a.id_keterangan_bacameter as ID_LBKB
+				from bacameter a left join keterangan_bacameter c on a.id_keterangan_bacameter=c.id_keterangan_bacameter where id_blth=$blth group by id_pelanggan union all select 
+				id_pelanggan, 
+				null as nama_pelanggan, 
+				null as tarif_pelanggan, 
+				0 as daya_pelanggan, 
+				null as alamat_pelanggan,
+				0 as id_kodeproses,
+				null as nama_keterangan_bacameter, LBKBKor, 
+				null as kode_keterangan_bacameter, KD_LBKBKor,
+				0 as plbkb_bacameter,
+				null as koduk,
+				null as TANGGAL,
+				0 as lwbp0, 
+				0 as wbp0, 
+				0 as kvarh0, 
+				0 as lwbp,
+				0 as wbp, 
+				0 as kvarh, 
+				lwbpkor,                             
+				wbpkor,                              
+				kvarhkor, 
+				null as gardu,id_keterangan_bacameter as ID_LBKBKOR, 0 as ID_LBKB
+				from 
+				(
+				select a.id_pelanggan, a.id_bacameter,max(tanggal_koreksi),lwbp_koreksi as lwbpkor, 
+				wbp_koreksi as wbpkor, 
+				kvarh_koreksi as kvarhkor, a.id_keterangan_bacameter,
+				nama_keterangan_bacameter as LBKBKor, kode_keterangan_bacameter as KD_LBKBKor
+				from koreksi a join bacameter b on a.id_bacameter=b.id_bacameter 
+				left join keterangan_bacameter d on a.id_keterangan_bacameter=d.id_keterangan_bacameter where id_blth=$blth group by a.id_bacameter ) z
+				) a group by id_pelanggan) b where id_pelanggan!='' and TGL!=''
+				) b where KD_LBKB is not null and KD_LBKB!=''";
 		
 		$r = array();
 		
-		if ($rbm != '') {
-			// cari di pelanggan, gardu, bacameter, rincian_rbm
-			$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.ALAMAT_PELANGGAN, a.KODUK_PELANGGAN, b.NAMA_GARDU, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, c.ID_BACAMETER, c.ID_KETERANGAN_BACAMETER, c.LWBP_BACAMETER, c.WBP_BACAMETER, c.KVARH_BACAMETER, c.PLBKB_BACAMETER, DATE(c.TANGGAL_BACAMETER) AS TANGGAL FROM pelanggan a, gardu b, bacameter c, rincian_rbm d WHERE a.ID_GARDU = b.ID_GARDU AND a.ID_PELANGGAN = c.ID_PELANGGAN AND c.ID_BLTH = '$blth' AND a.ID_PELANGGAN = d.ID_PELANGGAN AND d.ID_RBM = '$rbm'");
-		} else {
-			$run = $this->db->query("SELECT a.ID_PELANGGAN, a.NAMA_PELANGGAN, a.ALAMAT_PELANGGAN, a.KODUK_PELANGGAN, b.NAMA_GARDU, a.TARIF_PELANGGAN, a.DAYA_PELANGGAN, c.ID_BACAMETER, c.ID_KETERANGAN_BACAMETER, c.LWBP_BACAMETER, c.WBP_BACAMETER, c.KVARH_BACAMETER, c.PLBKB_BACAMETER, DATE(c.TANGGAL_BACAMETER) AS TANGGAL, e.NAMA_RBM FROM pelanggan a, gardu b, bacameter c, rincian_rbm d, rbm e WHERE a.ID_GARDU = b.ID_GARDU AND a.ID_PELANGGAN = c.ID_PELANGGAN AND c.ID_BLTH = '$blth' AND a.ID_PELANGGAN = d.ID_PELANGGAN AND d.ID_RBM = e.ID_RBM AND e.ID_UNIT = '$unit'");
+		if (!empty($rbm)) {
+			$sql.=" and rbm='$nama_rbm' ";
+		} 
+		
+		if (!empty($lbkb)) {
+			//$lbkb = array();
+			$lbkbx= implode(",",$lbkb); // 3,4,5
+			//echo "LBKB = ".$lbkbx;
+			$sql.=" and ID_KET in ($lbkbx)";
 		}
 		
-		for ($i = 0; $i < count($run); $i++) {
-			$row = $run[$i];
-			$idpel = $row->ID_PELANGGAN;
-			$ketbaca = $row->ID_KETERANGAN_BACAMETER;
-			if ($ketbaca == 0) continue;
-			
-			if ($rbm == '') {
-				$nama_rbm = $run[$i]->NAMA_RBM;
-			}
-			
-			if (count($lbkb) > 0) {
-				if ( ! in_array($ketbaca, $lbkb)) continue;
-			}
-			
-			// cari di bacameter lalu
-			$srun = $this->db->query("SELECT `ID_BACAMETER`, `LWBP_BACAMETER`, `WBP_BACAMETER`, `KVARH_BACAMETER` FROM `bacameter` WHERE `ID_PELANGGAN` = '$idpel' AND `ID_BLTH` = '$blth0'", TRUE);
-			if (empty($srun)) {
-				$lwbp0 = $wbp0 = $kvarh0 = $idbacameter0 = 0;
-			} else {
-				$lwbp0 = $srun->LWBP_BACAMETER;
-				$wbp0 = $srun->WBP_BACAMETER;
-				$kvarh0 = $srun->KVARH_BACAMETER;
-				$idbacameter0 = $srun->ID_BACAMETER;
-			}
-			
-			// cari di koreksi
-			$srun = $this->db->query("SELECT `LWBP_KOREKSI`, `WBP_KOREKSI`, `KVARH_KOREKSI` FROM `koreksi` WHERE `ID_BACAMETER` = '$idbacameter0' ORDER BY `TANGGAL_KOREKSI` DESC LIMIT 0, 1", TRUE);
-			if ( ! empty($srun)) {
-				$lwbp0 = $srun->LWBP_KOREKSI;
-				$wbp0 = $srun->WBP_KOREKSI;
-				$kvarh0 = $srun->KVARH_KOREKSI;
-			}
-			
-			list ($y, $m, $d) = explode('-', $row->TANGGAL);
-			$date = "$d/$m/$y";
-				
-			$lwbp = $row->LWBP_BACAMETER;
-			$wbp = $row->WBP_BACAMETER;
-			$kvarh = $row->KVARH_BACAMETER;
-				
-			// cari di koreksi jika ada
-			$srun = $this->db->query("SELECT `LWBP_KOREKSI`, `WBP_KOREKSI`, `KVARH_KOREKSI` FROM `koreksi` WHERE `ID_BACAMETER` = '" . $row->ID_BACAMETER . "' ORDER BY `TANGGAL_KOREKSI` DESC LIMIT 0, 1", TRUE);
-			if ( ! empty($srun)) {
-				$lwbp = $srun->LWBP_KOREKSI;
-				$wbp = $srun->WBP_KOREKSI;
-				$kvarh = $srun->KVARH_KOREKSI;
-			}
-			
-			$kdbaca = '-';
-			$nmbaca = 'Normal';
-			for ($j = 0; $j < count($datalbkb); $j++) {
-				if ($ketbaca == $datalbkb[$j]['id']) {
-					$kdbaca = $datalbkb[$j]['kode'];
-					$nmbaca = $datalbkb[$j]['nama'];
-					break;
-				}
-			}
-			
+		//echo $sql;
+		$runxx = $this->db->query($sql);
+	
+		for($i=0;$i<count($runxx);$i++) {
+			$row = $runxx[$i];
 			$r[] = array(
-				'idpel' => $idpel,
-				'progress' => $row->PLBKB_BACAMETER,
-				'nama' => $row->NAMA_PELANGGAN,
-				'alamat' => $row->ALAMAT_PELANGGAN,
-				'koduk' => $row->KODUK_PELANGGAN,
-				'gardu' => $row->NAMA_GARDU,
-				'rbm' => $nama_rbm,
-				'tarif' => $row->TARIF_PELANGGAN,
-				'daya' => number_format($row->DAYA_PELANGGAN, 0, ',', '.'),
-				'lwbp' => number_format(floatval($lwbp), '2', ',', '.'),
-				'wbp' => number_format(floatval($wbp), '2', ',', '.'),
-				'kvarh' => number_format(floatval($kvarh), '2', ',', '.'),
-				'lwbp0' => number_format(floatval($lwbp0), '2', ',', '.'),
-				'wbp0' => number_format(floatval($wbp0), '2', ',', '.'),
-				'kvarh0' => number_format(floatval($kvarh0), '2', ',', '.'),
-				'kdbaca' => $kdbaca,
-				'nmbaca' => $nmbaca,
-				'tanggal' => $date
+				'idpel' => $row->id_pelanggan,
+				'progress' => $row->plbkb_bacameter,
+				'nama' => $row->nama,
+				'alamat' => $row->alamat,
+				'koduk' => $row->koduk_plg,
+				'gardu' => $row->nama_gardu,
+				'rbm' => $row->rbm,
+				'tarif' => $row->tarif,
+				'daya' => number_format($row->daya, 0, ',', '.'),
+				'lwbp' => number_format(floatval($row->LWBP), '2', ',', '.'),
+				'wbp' => number_format(floatval($row->WBP), '2', ',', '.'),
+				'kvarh' => number_format(floatval($row->KVARH), '2', ',', '.'),
+				'lwbp0' => number_format(floatval($row->lwbplalu), '2', ',', '.'),
+				'wbp0' => number_format(floatval($row->wbplalu), '2', ',', '.'),
+				'kvarh0' => number_format(floatval($row->kvarhlalu), '2', ',', '.'),
+				'kdbaca' => $row->KD_LBKB,
+				'nmbaca' => $row->LBKB,
+				'tanggal' => $row->TGL
 			);
+			
 		}
 		
 		return $r;
