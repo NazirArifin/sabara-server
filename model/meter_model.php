@@ -502,8 +502,8 @@ class MeterModel extends ModelBase {
 		$numfiles = 0;
 		
 		$this->db->query("START TRANSACTION");
-		for ($i = 0; $i < count($file['name']); $i++) {
-			$file = $_FILES['file'];
+		for ($i = 0; $i < count($_FILES); $i++) {
+			//$file = $_FILES['file'];
 			$filename = strtolower($file['name'][$i]);
 			
 			if (@end(explode('.', $filename)) == 'zip') {
